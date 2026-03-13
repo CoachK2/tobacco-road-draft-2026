@@ -1,1 +1,1262 @@
+<!DOCTYPE html>
 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 NCAA Draft Sim — DEMO PREVIEW</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Courier New',monospace;background:#0d1117;color:#e6edf3;font-size:12px;min-height:100vh;display:flex;flex-direction:column}
+button{cursor:pointer;font-family:inherit}
+input[type=number]{font-family:inherit}
+input[type=number]::-webkit-inner-spin-button{opacity:1;height:20px}
+select{font-family:inherit}
+#header{background:#161b22;border-bottom:1px solid #30363d;padding:7px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+#header-title{color:#f78166;font-weight:bold;font-size:14px}
+#header-sub{color:#8b949e;margin-left:10px}
+#tabs{display:flex;gap:6px}
+#status-row{padding:5px 12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #30363d}
+#obligation-row{background:#0d1117;border-bottom:1px solid #30363d;padding:5px 12px;display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.pill{border-radius:6px;padding:4px 10px;display:flex;flex-direction:column;justify-content:center;min-width:180px}
+.pill-label{font-weight:bold;font-size:11px}
+.pill-detail{color:#8b949e;font-size:10px;margin-top:1px}
+#agent-row{background:#1a2e1a;border-bottom:1px solid #2ea043;padding:7px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#main{flex:1;overflow:auto;padding:10px}
+#filter-bar{position:sticky;top:0;z-index:10;background:#0d1117;border-bottom:1px solid #30363d;padding:6px 0;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#filter-bar input,#filter-bar select{padding:3px 8px;border-radius:3px;border:1px solid #30363d;background:#21262d;color:#e6edf3;font-size:11px}
+#filter-bar button{padding:3px 8px;border-radius:3px;font-size:11px}
+#board-wrap{overflow-x:auto;overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11px}
+thead th{padding:4px 5px;text-align:left;white-space:nowrap;border-bottom:2px solid #388bfd;position:sticky;top:0;background:#21262d;z-index:5;color:#8b949e}
+tbody tr{border-bottom:1px solid #1c2128}
+tbody td{padding:3px 5px}
+.frozen{position:sticky;z-index:4}
+.col1{left:0;min-width:28px}
+.col2{left:28px;min-width:160px}
+.col3{left:188px;min-width:100px;box-shadow:2px 0 6px #0009}
+.seed-badge{padding:0 4px;border-radius:5px;font-size:10px}
+.region-badge{padding:0 5px;border-radius:5px;font-size:10px}
+.btn-draft{padding:2px 6px;border-radius:3px;border:none;background:#2ea043;color:#fff;font-size:10px;font-weight:bold;margin-right:3px}
+.btn-taken{padding:2px 6px;border-radius:3px;border:1px solid #555;background:#21262d;color:#8b949e;font-size:10px}
+.btn-tab{padding:3px 9px;border-radius:4px;border:1px solid #30363d;font-size:11px}
+#modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center}
+#modal-overlay.show{display:flex}
+#modal-box{background:#161b22;border:1px solid #ffa657;border-radius:8px;padding:20px 28px;min-width:320px;box-shadow:0 8px 32px #000}
+#footer{background:#161b22;border-top:1px solid #30363d;padding:4px 12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;font-size:10px;color:#8b949e}
+.roster-card{background:#161b22;border:1px solid #30363d;border-radius:5px;padding:6px 10px;margin-bottom:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.log-row{border-radius:4px;padding:4px 8px;margin-bottom:3px;display:flex;gap:8px;align-items:center;font-size:11px;flex-wrap:wrap}
+
+/* ── DEMO STYLES ── */
+#demo-banner{background:linear-gradient(90deg,#1a0040,#3d0070,#1a0040);border-bottom:3px solid #a855f7;padding:8px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;animation:demopulse 2s ease-in-out infinite alternate}
+@keyframes demopulse{from{border-color:#a855f7}to{border-color:#f0abfc}}
+#demo-banner .demo-label{font-size:15px;font-weight:900;color:#f0abfc;letter-spacing:2px}
+#demo-banner .demo-sub{font-size:11px;color:#c084fc}
+#demo-banner .demo-cta{background:#a855f7;color:#fff;border:none;border-radius:5px;padding:6px 18px;font-size:12px;font-weight:700;cursor:pointer}
+#demo-banner .demo-cta:hover{background:#c084fc}
+.lock-watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:900;color:rgba(168,85,247,0.05);white-space:nowrap;letter-spacing:8px;pointer-events:none;user-select:none;z-index:500}
+#unlock-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:1000;align-items:center;justify-content:center}
+#unlock-modal.show{display:flex}
+.unlock-box{background:#161b22;border:2px solid #a855f7;border-radius:12px;padding:32px 36px;max-width:440px;width:92%;text-align:center;box-shadow:0 0 80px rgba(168,85,247,0.25)}
+.unlock-box h2{color:#f0abfc;font-size:22px;margin-bottom:8px;letter-spacing:1px}
+.unlock-box .unlock-sub{color:#8b949e;font-size:13px;line-height:1.6;margin-bottom:20px}
+.unlock-features{text-align:left;margin-bottom:22px;background:#0d1117;border-radius:8px;padding:14px 16px}
+.uf{display:flex;gap:10px;align-items:flex-start;margin-bottom:9px;font-size:12px;color:#e6edf3}
+.uf .fi{color:#a855f7;font-size:13px;min-width:18px;margin-top:1px}
+.uf .fd{color:#8b949e;font-size:11px;margin-top:2px}
+.unlock-btns{display:flex;gap:10px;justify-content:center}
+.unlock-close{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:5px;padding:8px 18px;cursor:pointer;font-size:12px}
+.unlock-contact{background:#a855f7;color:#fff;border:none;border-radius:5px;padding:8px 22px;cursor:pointer;font-size:12px;font-weight:700}
+.unlock-contact:hover{background:#c084fc}
+.demo-click-shield{position:fixed;top:0;left:0;right:0;bottom:0;z-index:200;cursor:not-allowed}
+</style>
+
+</head>
+<body>
+
+<!-- DEMO WATERMARK -->
+
+<div class="lock-watermark">🔒 DEMO PREVIEW 🔒</div>
+
+<!-- CLICK SHIELD — blocks all interaction except demo banner -->
+
+<div class="demo-click-shield" onclick="showUnlockModal()"></div>
+
+<!-- DEMO BANNER -->
+
+<div id="demo-banner">
+  <div>
+    <div class="demo-label">🔒 DEMO PREVIEW</div>
+    <div class="demo-sub">Full player board · AI recommendations · Region conflict detection — all locked</div>
+  </div>
+  <button class="demo-cta" onclick="showUnlockModal()">🚀 Get Full Access</button>
+</div>
+
+<!-- UNLOCK MODAL -->
+
+<div id="unlock-modal">
+  <div class="unlock-box">
+    <h2>🏀 Unlock Full Access</h2>
+    <div class="unlock-sub">You're looking at a live preview of the 2026 NCAA Draft Sim.<br>Everything you see is real — and fully functional in the complete version.</div>
+    <div class="unlock-features">
+      <div class="uf"><span class="fi">⭐</span><div><strong>AI Draft Agent</strong><div class="fd">Real-time pick recommendations based on your roster, obligations & region spread</div></div></div>
+      <div class="uf"><span class="fi">📊</span><div><strong>180 Players · All 68 Teams</strong><div class="fd">Full sortable board with tPPG, L10 trends, projected games & adjusted scores</div></div></div>
+      <div class="uf"><span class="fi">🔒</span><div><strong>DD Slot Tracker</strong><div class="fd">Automatic double-digit seed obligation tracking so you never miss a window</div></div></div>
+      <div class="uf"><span class="fi">⚠️</span><div><strong>Region Conflict Detection</strong><div class="fd">Flags R32/E8/FF/Champ clashes before they cost you points</div></div></div>
+      <div class="uf"><span class="fi">🎯</span><div><strong>Monte Carlo Projections</strong><div class="fd">10,000-sim bracket projections powering every pick score</div></div></div>
+      <div class="uf"><span class="fi">↩</span><div><strong>Undo & Reset</strong><div class="fd">Full draft control — undo picks, reset the board, adjust on the fly</div></div></div>
+    </div>
+    <div class="unlock-btns">
+      <button class="unlock-close" onclick="hideUnlockModal()">Keep Browsing</button>
+      <button class="unlock-contact" onclick="hideUnlockModal()">Talk to Me About Access</button>
+    </div>
+  </div>
+</div>
+
+<div id="header">
+  <span><span id="header-title">🏀 2026 DRAFT SIM</span><span id="header-sub"> · DEMO PREVIEW · 180 players · All 68 teams</span></span>
+  <div id="tabs">
+    <button class="btn-tab" id="tab-board" onclick="setTab('board')">📋 Board</button>
+    <button class="btn-tab" id="tab-roster" onclick="setTab('roster')">👤 Roster</button>
+    <button class="btn-tab" id="tab-log" onclick="setTab('log')">📜 Log</button>
+  </div>
+</div>
+
+<div id="status-row"></div>
+<div id="obligation-row"></div>
+<div id="agent-row" style="display:none"></div>
+
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div style="color:#ffa657;font-weight:bold;font-size:14px;margin-bottom:6px">📊 Update Projection</div>
+    <div id="modal-body" style="color:#e6edf3;margin-bottom:4px"></div>
+    <div id="modal-hint" style="color:#8b949e;font-size:11px;margin-bottom:14px"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <span style="color:#e6edf3">Proj G:</span>
+      <input type="number" min="0" max="6" step="0.5" id="modal-input" style="width:58px;padding:3px 6px;border-radius:4px;border:1px solid #ffa657;background:#21262d;color:#ffa657;font-size:13px;text-align:center">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeModal()" style="padding:5px 14px;border-radius:4px;border:1px solid #555;background:#21262d;color:#ccc">Skip</button>
+      <button id="modal-apply" style="padding:5px 14px;border-radius:4px;border:none;background:#ffa657;color:#0d1117;font-weight:bold">Apply</button>
+    </div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="view-board">
+    <div id="filter-bar">
+      <input type="text" id="search" placeholder="🔍 Search player or team..." style="width:170px" oninput="renderBoard()">
+      <select id="seed-filter" onchange="renderBoard()"><option value="all">All Seeds</option></select>
+      <select id="reg-filter" onchange="renderBoard()">
+        <option value="all">All Regions</option>
+        <option>East</option><option>West</option><option>South</option><option>Midwest</option>
+      </select>
+      <button onclick="document.getElementById('search').value='';document.getElementById('seed-filter').value='all';document.getElementById('reg-filter').value='all';renderBoard()" style="border:1px solid #30363d;background:#21262d;color:#8b949e">Clear</button>
+      <button onclick="resetProjG()" style="border:1px solid #ffa657;background:#2d1a00;color:#ffa657" title="Reset all projected games to seed defaults">↺ Reset ProjG</button>
+      <button onclick="state.hideInjured=!state.hideInjured;renderBoard()" id="inj-toggle-btn" style="border:1px solid #555;background:#21262d;color:#8b949e;font-weight:bold;padding:3px 9px;border-radius:3px;font-size:11px;margin-left:4px">🚑 Show Injured</button>
+      <button id="sort-btn" onclick="toggleSort()" style="border:1px solid #2ea043;background:#1a2e1a;color:#2ea043;font-weight:bold;padding:3px 9px;border-radius:3px;font-size:11px">⚡ Adj Score</button>
+      <span id="pool-count" style="color:#8b949e;font-size:11px;margin-left:4px"></span>
+    </div>
+    <div id="board-wrap">
+      <table id="board-table">
+        <thead><tr>
+          <th class="frozen col1">#</th>
+          <th class="frozen col2">Player</th>
+          <th class="frozen col3">Team</th>
+          <th onclick="setSortMode('seed')" style="cursor:pointer" title="Sort by seed">Seed ↕</th>
+          <th>Region</th><th>Path</th><th>Pos</th>
+          <th onclick="setSortMode('tppg')" style="cursor:pointer" title="Sort by tPPG">tPPG ↕</th><th title="Last 10 games avg" style="color:#f0c040">L10🔥</th>
+          <th>ProjG</th>
+          <th onclick="setSortMode('raw')" style="cursor:pointer" title="Sort by projected pts">Proj ↕</th>
+          <th onclick="setSortMode('adj')" style="cursor:pointer;color:#2ea043" title="Sort by adjusted score">Adj↓ ↕</th>
+          <th>Penalties</th><th>Flag</th><th>Conflict</th><th>Notes</th><th>Action</th>
+        </tr></thead>
+        <tbody id="board-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="view-roster" style="display:none"></div>
+  <div id="view-log" style="display:none"></div>
+</div>
+
+<div id="footer">
+  <span>180 players · 59 teams · ProjG from 10k sims · Full 2025 bracket · Region conflict detection: R32/E8/FF/Champ · ProjG calibrated via Monte Carlo</span>
+  <span>Agent: fade 4-seeds · target 11/12 DD · spread regions</span>
+</div>
+
+<script>
+const ROUNDS=14,TEAMS=10,MY_POS=8;
+
+const BRACKET={
+  "Florida":{region:"West",half:"W-Top"},"St. John's":{region:"West",half:"W-Bot"},
+  "Purdue":{region:"Midwest",half:"M-Top"},"Texas Tech":{region:"West",half:"W-Top"},
+  "Texas A&M":{region:"South",half:"S-Top"},"New Mexico":{region:"South",half:"S-Bot"},
+  "St. Mary's":{region:"West",half:"W-Bot"},"UCLA":{region:"Midwest",half:"M-Bot"},
+  "Connecticut":{region:"West",half:"W-Bot"},"Arkansas":{region:"West",half:"W-Top"},
+  "Colorado State":{region:"Midwest",half:"M-Top"},"UC San Diego":{region:"West",half:"W-Bot"},
+  "Yale":{region:"West",half:"W-Bot"},"James Madison":{region:"West",half:"W-Top"},
+  "Mt. St. Mary's":{region:"West",half:"W-Top"},"American":{region:"West",half:"W-Bot"},
+  "Duke":{region:"East",half:"E-Top"},"Alabama":{region:"East",half:"E-Bot"},
+  "Wisconsin":{region:"East",half:"E-Bot"},"Arizona":{region:"East",half:"E-Top"},
+  "Michigan":{region:"South",half:"S-Top"},"BYU":{region:"East",half:"E-Bot"},
+  "Baylor":{region:"South",half:"S-Bot"},"Oregon":{region:"East",half:"E-Top"},
+  "Utah State":{region:"Midwest",half:"M-Top"},"West Virginia":{region:"East",half:"E-Bot"},
+  "Akron":{region:"East",half:"E-Top"},"San Diego St.":{region:"East",half:"E-Top"},
+  "VCU":{region:"East",half:"E-Bot"},"Bryant":{region:"South",half:"S-Bot"},
+  "UNC Wilmington":{region:"East",half:"E-Top"},"Omaha":{region:"East",half:"E-Top"},
+  "Auburn":{region:"South",half:"S-Top"},"Mich. State":{region:"South",half:"S-Bot"},
+  "Iowa State":{region:"South",half:"S-Bot"},"UConn":{region:"West",half:"W-Bot"},
+  "Mississippi":{region:"South",half:"S-Bot"},"Marquette":{region:"South",half:"S-Top"},
+  "Louisville":{region:"East",half:"E-Bot"},"Creighton":{region:"East",half:"E-Bot"},
+  "Oklahoma":{region:"West",half:"W-Bot"},"Vanderbilt":{region:"East",half:"E-Bot"},
+  "N. Carolina":{region:"South",half:"S-Bot"},"Liberty":{region:"South",half:"S-Top"},
+  "Lipscomb":{region:"West",half:"W-Bot"},"St. Francis":{region:"Midwest",half:"M-Bot"},
+  "Alabama State":{region:"South",half:"S-Top"},
+  "Houston":{region:"Midwest",half:"M-Top"},"Tennessee":{region:"Midwest",half:"M-Bot"},
+  "Kentucky":{region:"Midwest",half:"M-Top"},"Maryland":{region:"West",half:"W-Top"},
+  "Clemson":{region:"Midwest",half:"M-Top"},"Miss. State":{region:"Midwest",half:"M-Bot"},
+  "Gonzaga":{region:"Midwest",half:"M-Top"},"Drake":{region:"West",half:"W-Bot"},
+  "McNeese":{region:"East",half:"E-Top"},"High Point":{region:"South",half:"S-Top"},
+  "Norfolk State":{region:"East",half:"E-Top"},"SIU Edwardsville":{region:"South",half:"S-Bot"},
+  "Memphis":{region:"West",half:"W-Bot"}
+};
+const FF_SEMI={East:"A",West:"A",South:"B",Midwest:"B"};
+const RC={East:"#0d1a2d",West:"#0d2a1a",South:"#2a0d1a",Midwest:"#1a0d2a"};
+const RT={East:"#79c0ff",West:"#56d364",South:"#ff9eb5",Midwest:"#d2a8ff"};
+const DEFAULT_G={"1":5,"2":4,"3":3,"4":2,"5":2,"6":2,"7":1,"8":1,"9":1,"10":2,"11":2,"12":1,"13":1,"14":1,"15":1,"16":0};
+const SIM_PROJ_G={"Akron":1.11,"Alabama":3.69,"Alabama State":0.53,"American":0.55,"Arizona":2.7,"Arkansas":1.45,"Auburn":4.43,"BYU":2.09,"Baylor":1.51,"Bryant":2.07,"Clemson":2.28,"Colorado State":1.84,"Connecticut":1.53,"Creighton":1.53,"Drake":0.75,"Duke":4.54,"Florida":4.43,"Georgia":1.51,"Gonzaga":3.28,"High Point":2.2,"Houston":4.28,"Illinois":1.98,"Iowa State":3.29,"James Madison":1.51,"Kansas":1.83,"Kentucky":3.18,"Liberty":1.07,"Lipscomb":1.05,"Louisville":1.6,"Marquette":1.82,"Maryland":2.72,"McNeese":2.53,"Memphis":2.3,"Mich. State":3.55,"Michigan":2.31,"Miss. State":1.63,"Mississippi":1.99,"Missouri":2.07,"Montana":1.02,"Mt. St. Mary's":0.46,"N. Carolina":2.13,"New Mexico":1.46,"Norfolk State":1.02,"Oklahoma":1.54,"Omaha":1.08,"Oregon":2.25,"Purdue":2.77,"SIU Edwardsville":1.04,"San Diego St.":0.57,"St. Francis":1.48,"St. John's":3.64,"St. Mary's":1.77,"Tennessee":3.86,"Texas":1.37,"Texas A&M":2.67,"Texas Tech":3.15,"Troy":1.04,"UC San Diego":1.24,"UCLA":1.75,"UConn":1.6,"UNC Wilmington":1.0,"Utah State":1.47,"VCU":1.8,"Vanderbilt":1.46,"West Virginia":1.99,"Wisconsin":3.07,"Wofford":1.01,"Yale":1.11};
+
+const POOL=[
+  {Name:"Cameron Boozer",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:22.7,L10:23.0,Notes:"L10: 23.0"},
+  {Name:"Isaiah Evans",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:14.5,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Patrick Ngongba",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:10.7,L10:11.9,Notes:"L10: 11.9"},
+  {Name:"Caleb Foster",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:8.5,L10:9.2,Notes:"L10: 9.2"},
+  {Name:"Cayden Boozer",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:6.5,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Dame Sarr",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:6.2,L10:6.4,Notes:"L10: 6.4"},
+  {Name:"Nikolas Khamenia",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:5.4,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Maliq Brown",Team:"Duke",Seed:"1",Region:"TBD",Pos:"",TournPPG:5.0,L10:5.5,Notes:"L10: 5.5"},
+  {Name:"Yaxel Lendeborg",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:14.7,L10:16.4,Notes:"L10: 16.4"},
+  {Name:"Morez Johnson Jr.",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:13.7,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Aday Mara",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:11.3,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Elliot Cadeau",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:9.9,L10:9.7,Notes:"L10: 9.7"},
+  {Name:"Trey McKenney",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:9.6,L10:10.0,Notes:"L10: 10.0"},
+  {Name:"L.J. Cason",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:8.4,L10:8.3,Notes:"L10: 8.3"},
+  {Name:"Nimari Burnett",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:8.4,L10:8.8,Notes:"L10: 8.8"},
+  {Name:"Roddy Gayle Jr.",Team:"Michigan",Seed:"1",Region:"TBD",Pos:"",TournPPG:7.4,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Brayden Burries",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:16.0,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Koa Peat",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:13.8,L10:14.3,Notes:"L10: 14.3"},
+  {Name:"Jaden Bradley",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:13.4,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Motiejus Krivas",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:10.8,L10:10.7,Notes:"L10: 10.7"},
+  {Name:"Ivan Kharchenkov",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:9.8,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Tobe Awaka",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:9.6,L10:9.2,Notes:"L10: 9.2"},
+  {Name:"Anthony Dell'Orso",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:8.7,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Dwayne Aristode",Team:"Arizona",Seed:"1",Region:"TBD",Pos:"",TournPPG:4.6,L10:6.2,Notes:"L10: 6.2"},
+  {Name:"Thomas Haugh",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:17.2,L10:18.6,Notes:"L10: 18.6"},
+  {Name:"Alex Condon",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:14.8,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Xaivian Lee",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:11.6,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Boogie Fland",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:11.6,L10:12.0,Notes:"L10: 12.0"},
+  {Name:"Rueben Chinyelu",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:11.4,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Urban Klavzar",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:9.9,L10:8.5,Notes:"L10: 8.5"},
+  {Name:"Isaiah Brown",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:5.7,L10:4.5,Notes:"L10: 4.5"},
+  {Name:"Micah Handlogten",Team:"Florida",Seed:"1",Region:"TBD",Pos:"",TournPPG:4.2,L10:5.0,Notes:"L10: 5.0"},
+  {Name:"Solo Ball",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:13.9,L10:15.0,Notes:"L10: 15.0"},
+  {Name:"Tarris Reed Jr.",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:13.8,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Alex Karaban",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:12.9,L10:13.4,Notes:"L10: 13.4"},
+  {Name:"Braylon Mullins",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:12.0,L10:11.3,Notes:"L10: 11.3"},
+  {Name:"Silas Demary Jr.",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:11.1,L10:10.0,Notes:"L10: 10.0"},
+  {Name:"Eric Reibe",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:6.7,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Jaylin Stewart",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:4.5,L10:6.4,Notes:"L10: 6.4"},
+  {Name:"Jayden Ross",Team:"UConn",Seed:"2",Region:"TBD",Pos:"",TournPPG:4.5,L10:5.3,Notes:"L10: 5.3"},
+  {Name:"Keaton Wagler",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:17.9,L10:14.7,Notes:"L10: 14.7"},
+  {Name:"Kylan Boswell",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:13.3,L10:15.7,Notes:"L10: 15.7"},
+  {Name:"Andrej Stojakovic",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:13.3,L10:15.5,Notes:"L10: 15.5"},
+  {Name:"David Mirkovic",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:13.2,L10:14.6,Notes:"L10: 14.6"},
+  {Name:"Tomislav Ivisic",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:10.0,L10:10.5,Notes:"L10: 10.5"},
+  {Name:"Zvonimir Ivisic",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:6.9,L10:8.0,Notes:"L10: 8.0"},
+  {Name:"Ben Humrichous",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:6.3,L10:6.7,Notes:"L10: 6.7"},
+  {Name:"Jake Davis",Team:"Illinois",Seed:"2",Region:"TBD",Pos:"",TournPPG:5.8,L10:3.2,Notes:"L10: 3.2"},
+  {Name:"Kingston Flemings",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:16.5,L10:14.8,Notes:"L10: 14.8"},
+  {Name:"Emanuel Sharp",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:15.8,L10:18.1,Notes:"L10: 18.1"},
+  {Name:"Milos Uzan",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:11.5,L10:11.6,Notes:"L10: 11.6"},
+  {Name:"Chris Cenac Jr.",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:9.4,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Joseph Tugler",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:8.0,L10:7.5,Notes:"L10: 7.5"},
+  {Name:"Mercy Miller",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:4.5,L10:4.2,Notes:"L10: 4.2"},
+  {Name:"Isiah Harwell",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:4.1,L10:5.4,Notes:"L10: 5.4"},
+  {Name:"Chase McCarty",Team:"Houston",Seed:"2",Region:"TBD",Pos:"",TournPPG:3.9,L10:2.7,Notes:"L10: 2.7"},
+  {Name:"Jeremy Fears Jr.",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:15.5,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Jaxon Kohler",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:12.8,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Coen Carr",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:11.5,L10:10.3,Notes:"L10: 10.3"},
+  {Name:"Carson Cooper",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:10.7,L10:10.3,Notes:"L10: 10.3"},
+  {Name:"Kur Teng",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:7.5,L10:5.7,Notes:"L10: 5.7"},
+  {Name:"Jordan Scott",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:5.9,L10:3.7,Notes:"L10: 3.7"},
+  {Name:"Divine Ugochukwu",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:5.1,L10:5.8,Notes:"L10: 5.8"},
+  {Name:"Cam Ward",Team:"Michigan State",Seed:"2",Region:"TBD",Pos:"",TournPPG:5.1,L10:7.0,Notes:"L10: 7.0"},
+  {Name:"Milan Momcilovic",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:17.1,L10:17.5,Notes:"L10: 17.5"},
+  {Name:"Joshua Jefferson",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:16.7,L10:18.2,Notes:"L10: 18.2"},
+  {Name:"Tamin Lipsey",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:13.2,L10:14.2,Notes:"L10: 14.2"},
+  {Name:"Blake Buchanan",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:8.4,L10:8.6,Notes:"L10: 8.6"},
+  {Name:"Killyan Toure",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:8.1,L10:11.5,Notes:"L10: 11.5"},
+  {Name:"Jamarion Batemon",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:7.0,L10:6.2,Notes:"L10: 6.2"},
+  {Name:"Nate Heise",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:4.8,L10:5.7,Notes:"L10: 5.7"},
+  {Name:"Dominykas Pleta",Team:"Iowa State",Seed:"3",Region:"TBD",Pos:"",TournPPG:4.4,L10:4.4,Notes:"L10: 4.4"},
+  {Name:"Labaron Philon Jr.",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:21.5,L10:21.7,Notes:"L10: 21.7"},
+  {Name:"Aden Holloway",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:16.8,L10:17.6,Notes:"L10: 17.6"},
+  {Name:"Latrell Wrightsell",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:13.3,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Amari Allen",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:11.9,L10:10.3,Notes:"L10: 10.3"},
+  {Name:"Aiden Sherrell",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:11.0,L10:8.3,Notes:"L10: 8.3"},
+  {Name:"Charles Bediako",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:10.0,L10:null,Notes:"Season avg only"},
+  {Name:"Houston Mallette",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:6.7,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"London Jemison",Team:"Alabama",Seed:"3",Region:"TBD",Pos:"",TournPPG:6.4,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Pryce Sandfort",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:17.9,L10:15.6,Notes:"L10: 15.6"},
+  {Name:"Rienk Mast",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:13.6,L10:18.0,Notes:"L10: 18.0"},
+  {Name:"Braden Frager",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:11.7,L10:11.9,Notes:"L10: 11.9"},
+  {Name:"Jamarques Lawrence",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:9.8,L10:8.6,Notes:"L10: 8.6"},
+  {Name:"Sam Hoiberg",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:9.7,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Ugnius Jarusevicius",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:7.0,L10:7.0,Notes:"L10: 7.0"},
+  {Name:"Berke Buyuktuncel",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:6.6,L10:7.6,Notes:"L10: 7.6"},
+  {Name:"Connor Essegian",Team:"Nebraska",Seed:"3",Region:"TBD",Pos:"",TournPPG:5.4,L10:5.4,Notes:"L10: 5.4"},
+  {Name:"Graham Ike",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:19.7,L10:17.3,Notes:"L10: 17.3"},
+  {Name:"Braden Huff",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:17.8,L10:17.0,Notes:"L10: 17.0"},
+  {Name:"Tyon Grant-Foster",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:11.2,L10:12.0,Notes:"L10: 12.0"},
+  {Name:"Mario Saint-Supery",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:8.6,L10:8.8,Notes:"L10: 8.8"},
+  {Name:"Davis Fogle",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:8.4,L10:7.7,Notes:"L10: 7.7"},
+  {Name:"Adam Miller",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:7.6,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Jalen Warley",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:6.8,L10:6.4,Notes:"L10: 6.4"},
+  {Name:"Emmanuel Innocenti",Team:"Gonzaga",Seed:"3",Region:"TBD",Pos:"",TournPPG:5.8,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Thijs De Ridder",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:15.9,L10:16.1,Notes:"L10: 16.1"},
+  {Name:"Malik Thomas",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:12.1,L10:11.8,Notes:"L10: 11.8"},
+  {Name:"Sam Lewis",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:10.4,L10:9.9,Notes:"L10: 9.9"},
+  {Name:"Chance Mallory",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:9.6,L10:11.7,Notes:"L10: 11.7"},
+  {Name:"Jacari White",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:8.9,L10:10.5,Notes:"L10: 10.5"},
+  {Name:"Johann Grunloh",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:7.7,L10:9.2,Notes:"L10: 9.2"},
+  {Name:"Ugonna Onyenso",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:6.4,L10:6.5,Notes:"L10: 6.5"},
+  {Name:"Dallin Hall",Team:"Virginia",Seed:"4",Region:"TBD",Pos:"",TournPPG:5.9,L10:5.8,Notes:"L10: 5.8"},
+  {Name:"Darryn Peterson",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:19.9,L10:21.6,Notes:"L10: 21.6"},
+  {Name:"Tre White",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:14.3,L10:14.3,Notes:"L10: 14.3"},
+  {Name:"Flory Bidunga",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:13.8,L10:14.7,Notes:"L10: 14.7"},
+  {Name:"Melvin Council Jr.",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:13.4,L10:10.7,Notes:"L10: 10.7"},
+  {Name:"Bryson Tiller",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:8.3,L10:9.3,Notes:"L10: 9.3"},
+  {Name:"Elmarko Jackson",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:4.7,L10:4.6,Notes:"L10: 4.6"},
+  {Name:"Jamari McDowell",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:3.6,L10:4.2,Notes:"L10: 4.2"},
+  {Name:"Kohl Rosario",Team:"Kansas",Seed:"4",Region:"TBD",Pos:"",TournPPG:3.1,L10:5.3,Notes:"L10: 5.3"},
+  {Name:"Braden Smith",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:14.9,L10:13.3,Notes:"L10: 13.3"},
+  {Name:"Fletcher Loyer",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:13.6,L10:14.0,Notes:"L10: 14.0"},
+  {Name:"Trey Kaufman-Renn",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:13.4,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Oscar Cluff",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:9.8,L10:11.4,Notes:"L10: 11.4"},
+  {Name:"C.J. Cox",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:8.5,L10:7.6,Notes:"L10: 7.6"},
+  {Name:"Daniel Jacobsen",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:6.4,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Omer Mayer",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:5.7,L10:6.7,Notes:"L10: 6.7"},
+  {Name:"Gicarri Harris",Team:"Purdue",Seed:"4",Region:"TBD",Pos:"",TournPPG:4.9,L10:4.5,Notes:"L10: 4.5"},
+  {Name:"Ja'Kobi Gillespie",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:18.0,L10:17.3,Notes:"L10: 17.3"},
+  {Name:"Nate Ament",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:17.4,L10:16.3,Notes:"L10: 16.3"},
+  {Name:"J.P. Estrella",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:10.2,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Felix Okpara",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:7.7,L10:7.7,Notes:"L10: 7.7"},
+  {Name:"Jaylen Carey",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:7.3,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"Bishop Boswell",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:6.6,L10:5.9,Notes:"L10: 5.9"},
+  {Name:"DeWayne Brown",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:5.1,L10:5.0,Notes:"L10: 5.0"},
+  {Name:"Amari Evans",Team:"Tennessee",Seed:"4",Region:"TBD",Pos:"",TournPPG:4.3,L10:1.8,Notes:"L10: 1.8"},
+  {Name:"Darius Acuff Jr.",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:22.2,L10:17.7,Notes:"L10: 17.7"},
+  {Name:"Meleek Thomas",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:15.4,L10:16.0,Notes:"L10: 16.0"},
+  {Name:"Trevon Brazile",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:13.1,L10:15.1,Notes:"L10: 15.1"},
+  {Name:"Billy Richmond",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:11.1,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Malique Ewin",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:9.7,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Karter Knox",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:8.1,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"D.J. Wagner",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:7.8,L10:8.0,Notes:"L10: 8.0"},
+  {Name:"Nick Pringle",Team:"Arkansas",Seed:"5",Region:"TBD",Pos:"",TournPPG:4.8,L10:4.9,Notes:"L10: 4.9"},
+  {Name:"Tyler Tanner",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:19.2,L10:15.8,Notes:"L10: 15.8"},
+  {Name:"Duke Miles",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:15.9,L10:16.6,Notes:"L10: 16.6"},
+  {Name:"Tyler Nickel",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:13.7,L10:15.0,Notes:"L10: 15.0"},
+  {Name:"AK Okereke",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:9.9,L10:8.5,Notes:"L10: 8.5"},
+  {Name:"Devin McGlockton",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:9.9,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Jalen Washington",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:9.0,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Frankie Collins",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:7.8,L10:7.8,Notes:"L10: 7.8"},
+  {Name:"Tyler Harris",Team:"Vanderbilt",Seed:"5",Region:"TBD",Pos:"",TournPPG:5.5,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Zuby Ejiofor",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:16.0,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Bryce Hopkins",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:13.3,L10:14.0,Notes:"L10: 14.0"},
+  {Name:"Oziyah Sellers",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:10.7,L10:11.4,Notes:"L10: 11.4"},
+  {Name:"Ian Jackson",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:9.8,L10:11.5,Notes:"L10: 11.5"},
+  {Name:"Joson Sanon",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:8.3,L10:10.6,Notes:"L10: 10.6"},
+  {Name:"Dillon Mitchell",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:8.1,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Dylan Darling",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:7.3,L10:5.4,Notes:"L10: 5.4"},
+  {Name:"Ruben Prey",Team:"St. John's",Seed:"5",Region:"TBD",Pos:"",TournPPG:4.0,L10:4.7,Notes:"L10: 4.7"},
+  {Name:"Caleb Wilson",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:19.8,L10:19.4,Notes:"L10: 19.4"},
+  {Name:"Henri Veesaar",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:16.3,L10:16.0,Notes:"L10: 16.0"},
+  {Name:"Seth Trimble",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:14.0,L10:14.0,Notes:"L10: 14.0"},
+  {Name:"Luka Bogavac",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:10.0,L10:12.5,Notes:"L10: 12.5"},
+  {Name:"Jarin Stevenson",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:7.8,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Derek Dixon",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:6.1,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Jonathan Powell",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:4.9,L10:5.5,Notes:"L10: 5.5"},
+  {Name:"Kyan Evans",Team:"North Carolina",Seed:"5",Region:"TBD",Pos:"",TournPPG:4.2,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Ryan Conwell",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:18.6,L10:19.4,Notes:"L10: 19.4"},
+  {Name:"Mikel Brown Jr.",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:18.2,L10:16.6,Notes:"L10: 16.6"},
+  {Name:"J'Vonne Hadley",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:11.6,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Isaac McKneely",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:10.8,L10:11.4,Notes:"L10: 11.4"},
+  {Name:"Sananda Fru",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:9.2,L10:10.6,Notes:"L10: 10.6"},
+  {Name:"Adrian Wooley",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:8.7,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"Khani Rooths",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:5.3,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Kobe Rodgers",Team:"Louisville",Seed:"6",Region:"TBD",Pos:"",TournPPG:3.4,L10:5.4,Notes:"L10: 5.4"},
+  {Name:"Nick Boyd",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:20.1,L10:20.2,Notes:"L10: 20.2"},
+  {Name:"John Blackwell",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:18.3,L10:19.6,Notes:"L10: 19.6"},
+  {Name:"Nolan Winter",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:13.3,L10:12.8,Notes:"L10: 12.8"},
+  {Name:"Austin Rapp",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:9.6,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Braeden Carrington",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:8.6,L10:4.8,Notes:"L10: 4.8"},
+  {Name:"Andrew Rohde",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:6.0,L10:7.3,Notes:"L10: 7.3"},
+  {Name:"Aleksas Bieliauskas",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:4.7,L10:4.7,Notes:"L10: 4.7"},
+  {Name:"Jack Janicki",Team:"Wisconsin",Seed:"6",Region:"TBD",Pos:"",TournPPG:2.2,L10:3.0,Notes:"L10: 3.0"},
+  {Name:"AJ Dybantsa",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:25.2,L10:20.9,Notes:"L10: 20.9"},
+  {Name:"Robert Wright",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:18.3,L10:16.1,Notes:"L10: 16.1"},
+  {Name:"Richie Saunders",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:18.0,L10:17.5,Notes:"L10: 17.5"},
+  {Name:"Kennard Davis Jr.",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:8.6,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"Dawson Baker",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:7.5,L10:7.5,Notes:"L10: 7.5"},
+  {Name:"Keba Keita",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:6.2,L10:7.6,Notes:"L10: 7.6"},
+  {Name:"Aleksej Kostic",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:4.0,L10:3.1,Notes:"L10: 3.1"},
+  {Name:"Mihailo Boškovic",Team:"BYU",Seed:"6",Region:"TBD",Pos:"",TournPPG:3.2,L10:2.9,Notes:"L10: 2.9"},
+  {Name:"Nigel James Jr.",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:16.4,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Chase Ross",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:14.3,L10:19.5,Notes:"L10: 19.5"},
+  {Name:"Royce Parham",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:12.5,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Zaide Lowery",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:8.1,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Ben Gold",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:8.0,L10:9.5,Notes:"L10: 9.5"},
+  {Name:"Adrien Stevens",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:7.9,L10:6.3,Notes:"L10: 6.3"},
+  {Name:"Sean Jones",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:6.3,L10:6.2,Notes:"L10: 6.2"},
+  {Name:"Damarius Owens",Team:"Marquette",Seed:"6",Region:"TBD",Pos:"",TournPPG:4.8,L10:3.8,Notes:"L10: 3.8"},
+  {Name:"Tyler Perkins",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:13.7,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Acaden Lewis",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:12.5,L10:12.4,Notes:"L10: 12.4"},
+  {Name:"Duke Brennan",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:12.3,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Bryce Lindsay",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:11.9,L10:17.2,Notes:"L10: 17.2"},
+  {Name:"Devin Askew",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:10.1,L10:9.4,Notes:"L10: 9.4"},
+  {Name:"Matt Hodge",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:9.2,L10:10.1,Notes:"L10: 10.1"},
+  {Name:"Malachi Palmer",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:4.4,L10:3.0,Notes:"L10: 3.0"},
+  {Name:"Chris Jeffrey",Team:"Villanova",Seed:"7",Region:"TBD",Pos:"",TournPPG:3.1,L10:3.8,Notes:"L10: 3.8"},
+  {Name:"Otega Oweh",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:18.3,L10:14.4,Notes:"L10: 14.4"},
+  {Name:"Denzel Aberdeen",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:13.0,L10:12.4,Notes:"L10: 12.4"},
+  {Name:"Collin Chandler",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:9.9,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Mouhamed Dioubate",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:8.5,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Malachi Moreno",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:8.1,L10:10.1,Notes:"L10: 10.1"},
+  {Name:"Jaland Lowe",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:8.0,L10:8.0,Notes:"L10: 8.0"},
+  {Name:"Kam Williams",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:6.7,L10:4.2,Notes:"L10: 4.2"},
+  {Name:"Andrija Jelavic",Team:"Kentucky",Seed:"7",Region:"TBD",Pos:"",TournPPG:5.9,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Paulius Murauskas",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:18.8,L10:18.0,Notes:"L10: 18.0"},
+  {Name:"Mikey Lewis",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:14.2,L10:16.8,Notes:"L10: 16.8"},
+  {Name:"Joshua Dent",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:13.0,L10:12.3,Notes:"L10: 12.3"},
+  {Name:"Andrew McKeever",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:8.4,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Dillan Shaw",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:7.5,L10:6.4,Notes:"L10: 6.4"},
+  {Name:"Harry Wessels",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:4.9,L10:3.3,Notes:"L10: 3.3"},
+  {Name:"Liam Campbell",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:4.6,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Rory Hawke",Team:"St. Mary's",Seed:"7",Region:"TBD",Pos:"",TournPPG:2.5,L10:3.6,Notes:"L10: 3.6"},
+  {Name:"Jeremiah Wilkinson",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:17.3,L10:17.1,Notes:"L10: 17.1"},
+  {Name:"Blue Cain",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:13.6,L10:16.1,Notes:"L10: 16.1"},
+  {Name:"Marcus Millender",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:12.0,L10:9.5,Notes:"L10: 9.5"},
+  {Name:"Kanon Catchings",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:11.7,L10:9.3,Notes:"L10: 9.3"},
+  {Name:"Somtochukwu Cyril",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:9.7,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Jordan Ross",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:6.7,L10:7.0,Notes:"L10: 7.0"},
+  {Name:"Jake Wilkins",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:5.1,L10:8.3,Notes:"L10: 8.3"},
+  {Name:"Kareem Stagg",Team:"Georgia",Seed:"7",Region:"TBD",Pos:"",TournPPG:4.6,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Tyler Bilodeau",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:18.0,L10:17.5,Notes:"L10: 17.5"},
+  {Name:"Donovan Dent",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:13.6,L10:12.8,Notes:"L10: 12.8"},
+  {Name:"Trent Perry",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:12.4,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Skyy Clark",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:11.9,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Eric Dailey Jr.",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:11.3,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Xavier Booker",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:7.0,L10:10.6,Notes:"L10: 10.6"},
+  {Name:"Jamar Brown",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:4.3,L10:5.9,Notes:"L10: 5.9"},
+  {Name:"Brandon Williams",Team:"UCLA",Seed:"8",Region:"TBD",Pos:"",TournPPG:2.5,L10:2.6,Notes:"L10: 2.6"},
+  {Name:"MJ Collins Jr.",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:17.6,L10:20.6,Notes:"L10: 20.6"},
+  {Name:"Mason Falslev",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:15.9,L10:15.3,Notes:"L10: 15.3"},
+  {Name:"Karson Templin",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:9.3,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Kolby King",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:7.9,L10:8.7,Notes:"L10: 8.7"},
+  {Name:"Drake Allen",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:7.5,L10:6.5,Notes:"L10: 6.5"},
+  {Name:"Garry Clark",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:6.8,L10:10.5,Notes:"L10: 10.5"},
+  {Name:"Adlan Elamin",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:6.4,L10:4.6,Notes:"L10: 4.6"},
+  {Name:"Elijah Perryman",Team:"Utah State",Seed:"8",Region:"TBD",Pos:"",TournPPG:5.0,L10:5.0,Notes:"L10: 5.0"},
+  {Name:"RJ Godfrey",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:11.7,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Carter Welling",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:10.2,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Jestin Porter",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:9.6,L10:10.9,Notes:"L10: 10.9"},
+  {Name:"Nick Davidson",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:9.1,L10:7.8,Notes:"L10: 7.8"},
+  {Name:"Ace Buckner",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:8.3,L10:6.9,Notes:"L10: 6.9"},
+  {Name:"Dillon Hunter",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:7.4,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Zac Foster",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:6.9,L10:7.1,Notes:"L10: 7.1"},
+  {Name:"Butta Johnson",Team:"Clemson",Seed:"8",Region:"TBD",Pos:"",TournPPG:6.0,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"David Punch",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:14.0,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Xavier Edmonds",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:12.9,L10:9.1,Notes:"L10: 9.1"},
+  {Name:"Micah Robinson",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:10.6,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Jayden Pierre",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:10.5,L10:11.3,Notes:"L10: 11.3"},
+  {Name:"Liutauras Lelevicius",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:8.2,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Brock Harding",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:8.2,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Tanner Toolson",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:8.1,L10:6.5,Notes:"L10: 6.5"},
+  {Name:"Jace Posey",Team:"TCU",Seed:"8",Region:"TBD",Pos:"",TournPPG:4.6,L10:6.3,Notes:"L10: 6.3"},
+  {Name:"Bruce Thornton",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:20.1,L10:21.8,Notes:"L10: 21.8"},
+  {Name:"John Mobley Jr.",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:15.9,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Devin Royal",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:14.0,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Christoph Tilly",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:11.0,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Amare Bynum",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:9.8,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"Brandon Noel",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:7.4,L10:8.4,Notes:"L10: 8.4"},
+  {Name:"Taison Chatman",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:4.7,L10:2.7,Notes:"L10: 2.7"},
+  {Name:"Ivan Njegovan",Team:"Ohio State",Seed:"9",Region:"TBD",Pos:"",TournPPG:2.9,L10:3.1,Notes:"L10: 3.1"},
+  {Name:"Robbie Avila",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:12.6,L10:12.1,Notes:"L10: 12.1"},
+  {Name:"Dion Brown",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:11.2,L10:12.6,Notes:"L10: 12.6"},
+  {Name:"Trey Green",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.9,L10:12.0,Notes:"L10: 12.0"},
+  {Name:"Amari McCottry",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.3,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Kellen Thames",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:9.9,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Quentin Jones",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:9.5,L10:10.2,Notes:"L10: 10.2"},
+  {Name:"Ishan Sharma",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:9.0,L10:8.6,Notes:"L10: 8.6"},
+  {Name:"Brady Dunlap",Team:"St. Louis",Seed:"9",Region:"TBD",Pos:"",TournPPG:7.1,L10:5.1,Notes:"L10: 5.1"},
+  {Name:"Mark Mitchell",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:17.9,L10:18.4,Notes:"L10: 18.4"},
+  {Name:"Jayden Stone",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:13.5,L10:14.7,Notes:"L10: 14.7"},
+  {Name:"Trent Pierce",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.8,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"T.O. Barrett",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:8.8,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Jacob Crews",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:8.7,L10:13.8,Notes:"L10: 13.8"},
+  {Name:"Shawn Phillips Jr.",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:7.7,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Sebastian Mack",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:7.0,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Jevon Porter",Team:"Missouri",Seed:"9",Region:"TBD",Pos:"",TournPPG:6.2,L10:6.8,Notes:"L10: 6.8"},
+  {Name:"Rashaun Agee",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:14.7,L10:11.8,Notes:"L10: 11.8"},
+  {Name:"Rylan Griffen",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:11.6,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Marcus Hill",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.9,L10:12.1,Notes:"L10: 12.1"},
+  {Name:"Rubén Dominguez",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.5,L10:14.5,Notes:"L10: 14.5"},
+  {Name:"Mackenzie Mgbako",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.4,L10:10.4,Notes:"L10: 10.4"},
+  {Name:"Pop Isaacs",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:10.0,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Zach Clemence",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:7.2,L10:5.7,Notes:"L10: 5.7"},
+  {Name:"Jacari Lane",Team:"Texas A&M",Seed:"9",Region:"TBD",Pos:"",TournPPG:6.6,L10:6.8,Notes:"L10: 6.8"},
+  {Name:"Dailyn Swain",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:17.8,L10:15.7,Notes:"L10: 15.7"},
+  {Name:"Matas Vokietaitis",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:15.5,L10:15.9,Notes:"L10: 15.9"},
+  {Name:"Tramon Mark",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:13.5,L10:9.9,Notes:"L10: 9.9"},
+  {Name:"Jordan Pope",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:13.3,L10:12.5,Notes:"L10: 12.5"},
+  {Name:"Camden Heide",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:6.2,L10:6.5,Notes:"L10: 6.5"},
+  {Name:"Simeon Wilcher",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:6.2,L10:9.4,Notes:"L10: 9.4"},
+  {Name:"Chendall Weaver",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:5.7,L10:7.3,Notes:"L10: 7.3"},
+  {Name:"Nic Codie",Team:"Texas",Seed:"10",Region:"TBD",Pos:"",TournPPG:4.0,L10:4.6,Notes:"L10: 4.6"},
+  {Name:"Brandin Podziemski",Team:"Santa Clara",Seed:"10",Region:"TBD",Pos:"",TournPPG:18.5,L10:null,Notes:"Season avg only"},
+  {Name:"Jalen Williams",Team:"Santa Clara",Seed:"10",Region:"TBD",Pos:"",TournPPG:12.0,L10:null,Notes:"Season avg only"},
+  {Name:"Carlos Stewart",Team:"Santa Clara",Seed:"10",Region:"TBD",Pos:"",TournPPG:9.5,L10:null,Notes:"Season avg only"},
+  {Name:"Lamar Wilkerson",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:20.9,L10:18.8,Notes:"L10: 18.8"},
+  {Name:"Tucker DeVries",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:13.7,L10:17.2,Notes:"L10: 17.2"},
+  {Name:"Tayton Conerway",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:9.5,L10:12.3,Notes:"L10: 12.3"},
+  {Name:"Sam Alexis",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:8.8,L10:9.0,Notes:"L10: 9.0"},
+  {Name:"Reed Bailey",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:8.3,L10:11.1,Notes:"L10: 11.1"},
+  {Name:"Nick Dorn",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:8.1,L10:7.9,Notes:"L10: 7.9"},
+  {Name:"Conor Enright",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:4.6,L10:3.6,Notes:"L10: 3.6"},
+  {Name:"Trent Sisley",Team:"Indiana",Seed:"10",Region:"TBD",Pos:"",TournPPG:4.2,L10:7.8,Notes:"L10: 7.8"},
+  {Name:"Nijel Pack",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:16.3,L10:17.3,Notes:"L10: 17.3"},
+  {Name:"Xzayvier Brown",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:15.6,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Tae Davis",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:12.3,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Derrion Reid",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:11.6,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Kuol Atak",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:7.0,L10:7.1,Notes:"L10: 7.1"},
+  {Name:"Mohamed Wague",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:7.0,L10:7.2,Notes:"L10: 7.2"},
+  {Name:"Jadon Jones",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:6.0,L10:7.6,Notes:"L10: 7.6"},
+  {Name:"Dayton Forsythe",Team:"Oklahoma",Seed:"10",Region:"TBD",Pos:"",TournPPG:5.5,L10:5.2,Notes:"L10: 5.2"},
+  {Name:"Terrence Hill Jr.",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:14.1,L10:12.7,Notes:"⚠ First Four | L10: 12.7"},
+  {Name:"Lazar Djokovic",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:13.8,L10:11.2,Notes:"⚠ First Four | L10: 11.2"},
+  {Name:"Jadrian Tracey",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:10.1,L10:12.0,Notes:"⚠ First Four | L10: 12.0"},
+  {Name:"Brandon Jennings",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:9.0,L10:8.2,Notes:"⚠ First Four | L10: 8.2"},
+  {Name:"Nyk Lewis",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:8.5,L10:10.0,Notes:"⚠ First Four | L10: 10.0"},
+  {Name:"Barry Evans",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:7.5,L10:9.3,Notes:"⚠ First Four | L10: 9.3"},
+  {Name:"Michael Belle",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:7.2,L10:5.6,Notes:"⚠ First Four | L10: 5.6"},
+  {Name:"Tyrell Ward",Team:"VCU",Seed:"11",Region:"TBD",Pos:"",TournPPG:6.0,L10:4.8,Notes:"⚠ First Four | L10: 4.8"},
+  {Name:"Boopie Miller",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:19.2,L10:20.6,Notes:"⚠ First Four | L10: 20.6"},
+  {Name:"Jaron Pierre Jr.",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:17.6,L10:19.5,Notes:"⚠ First Four | L10: 19.5"},
+  {Name:"B.J. Edwards",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:12.7,L10:13.0,Notes:"⚠ First Four | L10: 13.0"},
+  {Name:"Corey Washington",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:11.3,L10:13.5,Notes:"⚠ First Four | L10: 13.5"},
+  {Name:"Samet Yigitoglu",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:10.8,L10:11.5,Notes:"⚠ First Four | L10: 11.5"},
+  {Name:"Jaden Toombs",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:7.8,L10:8.8,Notes:"⚠ First Four | L10: 8.8"},
+  {Name:"Jermaine O'Neal Jr.",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:4.6,L10:4.7,Notes:"⚠ First Four | L10: 4.7"},
+  {Name:"Sam Walters",Team:"SMU",Seed:"11",Region:"TBD",Pos:"",TournPPG:2.5,L10:2.2,Notes:"⚠ First Four | L10: 2.2"},
+  {Name:"Riley Kugel",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:14.7,L10:14.6,Notes:"⚠ First Four | L10: 14.6"},
+  {Name:"Themus Fulks",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:14.1,L10:11.5,Notes:"⚠ First Four | L10: 11.5"},
+  {Name:"Jordan Burks",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:13.1,L10:12.8,Notes:"⚠ First Four | L10: 12.8"},
+  {Name:"Jamichael Stillwell",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:11.8,L10:12.2,Notes:"⚠ First Four | L10: 12.2"},
+  {Name:"Chris Johnson",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:6.3,L10:5.8,Notes:"⚠ First Four | L10: 5.8"},
+  {Name:"John Bol",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:6.0,L10:6.3,Notes:"⚠ First Four | L10: 6.3"},
+  {Name:"Devan Cambridge",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:5.5,L10:5.4,Notes:"⚠ First Four | L10: 5.4"},
+  {Name:"Carmelo Pacheco",Team:"UCF",Seed:"11",Region:"TBD",Pos:"",TournPPG:4.8,L10:7.2,Notes:"⚠ First Four | L10: 7.2"},
+  {Name:"Keyshawn Hall",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:20.2,L10:20.9,Notes:"⚠ First Four | L10: 20.9"},
+  {Name:"Tahaad Pettiford",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:15.2,L10:15.7,Notes:"⚠ First Four | L10: 15.7"},
+  {Name:"Kevin Overton",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:13.5,L10:11.5,Notes:"⚠ First Four | L10: 11.5"},
+  {Name:"KeShawn Murphy",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:10.8,L10:9.7,Notes:"⚠ First Four | L10: 9.7"},
+  {Name:"Elyjah Freeman",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:9.4,L10:8.0,Notes:"⚠ First Four | L10: 8.0"},
+  {Name:"Sebastian Williams-Adams",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:6.8,L10:7.6,Notes:"⚠ First Four | L10: 7.6"},
+  {Name:"Filip Jovic",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:5.6,L10:6.4,Notes:"⚠ First Four | L10: 6.4"},
+  {Name:"Emeka Opurum",Team:"Auburn",Seed:"11",Region:"TBD",Pos:"",TournPPG:3.8,L10:3.8,Notes:"⚠ First Four | L10: 3.8"},
+  {Name:"Wes Enis",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:16.5,L10:11.6,Notes:"L10: 11.6"},
+  {Name:"Izaiyah Nelson",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:15.8,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Joseph Pinion",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:14.2,L10:14.6,Notes:"L10: 14.6"},
+  {Name:"Josh Omojafo",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:11.7,L10:13.2,Notes:"L10: 13.2"},
+  {Name:"CJ Brown",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:11.4,L10:13.1,Notes:"L10: 13.1"},
+  {Name:"Isaiah Jones",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:4.4,L10:5.1,Notes:"L10: 5.1"},
+  {Name:"Daimion Collins",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:4.4,L10:5.2,Notes:"L10: 5.2"},
+  {Name:"Adriel Nyorha",Team:"South Florida",Seed:"12",Region:"TBD",Pos:"",TournPPG:3.9,L10:6.1,Notes:"L10: 6.1"},
+  {Name:"Nick Townsend",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:16.5,L10:17.5,Notes:"L10: 17.5"},
+  {Name:"Isaac Celiscar",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:12.2,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Trevor Mullin",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:11.0,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Riley Fox",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:10.8,L10:13.9,Notes:"L10: 13.9"},
+  {Name:"Casey Simmons",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:10.3,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Samson Aletan",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:8.3,L10:8.7,Notes:"L10: 8.7"},
+  {Name:"Jordan Brathwaite",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:6.7,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Devon Arlington",Team:"Yale",Seed:"12",Region:"TBD",Pos:"",TournPPG:2.8,L10:3.0,Notes:"L10: 3.0"},
+  {Name:"Terry Anderson",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:16.0,L10:13.5,Notes:"L10: 13.5"},
+  {Name:"Rob Martin",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:15.3,L10:15.8,Notes:"L10: 15.8"},
+  {Name:"Cam'Ron Fletcher",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:12.7,L10:17.2,Notes:"L10: 17.2"},
+  {Name:"Owen Aquino",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:9.4,L10:7.7,Notes:"L10: 7.7"},
+  {Name:"Conrad Martinez",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:9.3,L10:10.7,Notes:"L10: 10.7"},
+  {Name:"Scotty Washington",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:8.7,L10:7.8,Notes:"L10: 7.8"},
+  {Name:"Braden Hausen",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:6.8,L10:3.7,Notes:"L10: 3.7"},
+  {Name:"Chase Johnston",Team:"High Point",Seed:"12",Region:"TBD",Pos:"",TournPPG:6.1,L10:8.3,Notes:"L10: 8.3"},
+  {Name:"Skylar Wicks",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:17.8,L10:19.1,Notes:"L10: 19.1"},
+  {Name:"Zion Russell",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:12.4,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Chris Moncrief",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:9.5,L10:7.4,Notes:"L10: 7.4"},
+  {Name:"Ahmad Harrison",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:8.2,L10:6.8,Notes:"L10: 6.8"},
+  {Name:"Gestin Liberis",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:7.3,L10:5.3,Notes:"L10: 5.3"},
+  {Name:"Victor Payne",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:6.8,L10:5.9,Notes:"L10: 5.9"},
+  {Name:"Ralph Martino Jr.",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:6.7,L10:5.8,Notes:"L10: 5.8"},
+  {Name:"Paris Papadatos",Team:"Stephen F. Austin",Seed:"12",Region:"TBD",Pos:"",TournPPG:4.6,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Brett Decker Jr.",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:16.8,L10:18.1,Notes:"L10: 18.1"},
+  {Name:"Kaden Metheny",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:13.4,L10:13.0,Notes:"L10: 13.0"},
+  {Name:"Zach Cleveland",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:11.8,L10:9.4,Notes:"L10: 9.4"},
+  {Name:"Colin Porter",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:11.4,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"JJ Harper",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:10.8,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Josh Smith",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:7.0,L10:5.7,Notes:"L10: 5.7"},
+  {Name:"Zander Carter",Team:"Liberty",Seed:"13",Region:"TBD",Pos:"",TournPPG:3.2,L10:4.9,Notes:"L10: 4.9"},
+  {Name:"Jah'Likai King",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:14.3,L10:14.8,Notes:"L10: 14.8"},
+  {Name:"DJ Armstrong Jr.",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:12.6,L10:11.5,Notes:"L10: 11.5"},
+  {Name:"Ace Valentine",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:11.9,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Caden Diggs",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:9.9,L10:9.5,Notes:"L10: 9.5"},
+  {Name:"Josh Odunowo",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:8.6,L10:8.1,Notes:"L10: 8.1"},
+  {Name:"Jose Roberto Tanchyn",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:6.5,L10:4.5,Notes:"L10: 4.5"},
+  {Name:"Daylon Dickerson",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:5.6,L10:7.5,Notes:"L10: 7.5"},
+  {Name:"Riley Jacobs",Team:"Northern Iowa",Seed:"13",Region:"TBD",Pos:"",TournPPG:4.5,L10:4.1,Notes:"L10: 4.1"},
+  {Name:"Cameron Barry",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:21.0,L10:null,Notes:"Season avg only"},
+  {Name:"Julian Bryant",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:10.0,L10:null,Notes:"Season avg only"},
+  {Name:"Nick Medeiros",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:8.0,L10:null,Notes:"Season avg only"},
+  {Name:"Dillon Iyawe",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:6.0,L10:null,Notes:"Season avg only"},
+  {Name:"James Nobles",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:5.0,L10:null,Notes:"Season avg only"},
+  {Name:"Pierce Rexford",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:5.0,L10:null,Notes:"Season avg only"},
+  {Name:"Andrew Henderson",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:3.0,L10:17.7,Notes:"L10: 17.7"},
+  {Name:"Damien Miller",Team:"North Dakota St.",Seed:"13",Region:"TBD",Pos:"",TournPPG:2.0,L10:null,Notes:"Season avg only"},
+  {Name:"Ethan Potter",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:16.3,L10:16.9,Notes:"L10: 16.9"},
+  {Name:"Chance Trujillo",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:12.3,L10:12.1,Notes:"L10: 12.1"},
+  {Name:"Noah Bolanga",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:12.3,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Jusaun Holt",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:12.0,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Madiba Owona",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:9.7,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Tanner Davis",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:7.5,L10:9.6,Notes:"L10: 9.6"},
+  {Name:"Britton Berrett",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:5.2,L10:3.5,Notes:"L10: 3.5"},
+  {Name:"Samuel Ariyibi",Team:"Utah Valley",Seed:"13",Region:"TBD",Pos:"",TournPPG:2.5,L10:2.6,Notes:"L10: 2.6"},
+  {Name:"Victor Valdes",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:14.8,L10:16.8,Notes:"L10: 16.8"},
+  {Name:"Thomas Dowd",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:14.8,L10:16.3,Notes:"L10: 16.3"},
+  {Name:"Theo Seng",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:12.9,L10:13.0,Notes:"L10: 13.0"},
+  {Name:"Cooper Campbell",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:12.7,L10:15.9,Notes:"L10: 15.9"},
+  {Name:"Cobi Campbell",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:9.0,L10:9.3,Notes:"L10: 9.3"},
+  {Name:"Jerrell Bellamy",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:8.2,L10:5.0,Notes:"L10: 5.0"},
+  {Name:"Kerrington Kiel",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:3.9,L10:4.2,Notes:"L10: 4.2"},
+  {Name:"Austin Cross",Team:"Troy",Seed:"14",Region:"TBD",Pos:"",TournPPG:3.7,L10:3.7,Notes:"L10: 3.7"},
+  {Name:"Tre Carroll",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:18.0,L10:17.3,Notes:"L10: 17.3"},
+  {Name:"Jovan Milicevic",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:12.6,L10:12.5,Notes:"L10: 12.5"},
+  {Name:"Malik Messina-Moore",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:11.1,L10:6.8,Notes:"L10: 6.8"},
+  {Name:"Roddie Anderson",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:10.8,L10:13.3,Notes:"L10: 13.3"},
+  {Name:"Filip Borovicanin",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:10.5,L10:8.5,Notes:"L10: 8.5"},
+  {Name:"All Wright",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:7.7,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Isaiah Walker",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:4.6,L10:3.9,Notes:"L10: 3.9"},
+  {Name:"Anthony Robinson",Team:"Wright State",Seed:"14",Region:"TBD",Pos:"",TournPPG:2.4,L10:3.7,Notes:"L10: 3.7"},
+  {Name:"Po'Boigh King",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:14.1,L10:11.3,Notes:"L10: 11.3"},
+  {Name:"Jacob Walker",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:11.3,L10:7.4,Notes:"L10: 7.4"},
+  {Name:"Veljko Ilic",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:11.2,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Isaiah Manning",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:10.7,L10:11.2,Notes:"L10: 11.2"},
+  {Name:"Kashie Natt",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:10.6,L10:12.2,Notes:"L10: 12.2"},
+  {Name:"Justin Begg",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:9.5,L10:9.1,Notes:"L10: 9.1"},
+  {Name:"Jacobe Coleman",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:8.6,L10:8.8,Notes:"L10: 8.8"},
+  {Name:"Damon Nicholas Jr.",Team:"Sam Houston",Seed:"14",Region:"TBD",Pos:"",TournPPG:8.5,L10:8.6,Notes:"L10: 8.6"},
+  {Name:"Aaron Nkrumah",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:17.6,L10:16.6,Notes:"L10: 16.6"},
+  {Name:"Travis Harper",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:17.3,L10:15.0,Notes:"L10: 15.0"},
+  {Name:"Dante Harris",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:11.7,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Antoine Lorick",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:9.5,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Jalen Pitre",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:6.5,L10:7.2,Notes:"L10: 7.2"},
+  {Name:"Khalil London",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:6.4,L10:7.3,Notes:"L10: 7.3"},
+  {Name:"Carlous Williams",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:5.7,L10:5.6,Notes:"L10: 5.6"},
+  {Name:"Jabrion Spikes",Team:"Tennessee State",Seed:"15",Region:"TBD",Pos:"",TournPPG:2.9,L10:2.4,Notes:"L10: 2.4"},
+  {Name:"Nasir Whitlock",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:21.0,L10:18.2,Notes:"L10: 18.2"},
+  {Name:"Hank Alvey",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:15.0,L10:10.2,Notes:"L10: 10.2"},
+  {Name:"Joshua Ingram",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:10.6,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Edouard Benoit",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:10.3,L10:14.4,Notes:"L10: 14.4"},
+  {Name:"Andrew Urosevic",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:7.3,L10:11.0,Notes:"L10: 11.0"},
+  {Name:"Caleb Thomas",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:5.0,L10:7.3,Notes:"L10: 7.3"},
+  {Name:"Peter Kramer",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:4.1,L10:5.3,Notes:"L10: 5.3"},
+  {Name:"Jalen Vazquez",Team:"LIU",Seed:"15",Region:"TBD",Pos:"",TournPPG:3.9,L10:2.5,Notes:"L10: 2.5"},
+  {Name:"Kameron Taylor",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:18.9,L10:16.2,Notes:"L10: 16.2"},
+  {Name:"Justin Wright",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:17.1,L10:18.3,Notes:"L10: 18.3"},
+  {Name:"Toyaz Solomon",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:16.9,L10:17.8,Notes:"L10: 17.8"},
+  {Name:"Connor Dubsky",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:15.0,L10:15.0,Notes:"L10: 15.0"},
+  {Name:"DJ Patrick",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:9.6,L10:10.5,Notes:"L10: 10.5"},
+  {Name:"Myles Mayfield",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:4.5,L10:5.4,Notes:"L10: 5.4"},
+  {Name:"Jakel Powell",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:3.2,L10:3.2,Notes:"L10: 3.2"},
+  {Name:"Daniel Thomas",Team:"Merrimack",Seed:"15",Region:"TBD",Pos:"",TournPPG:2.8,L10:1.8,Notes:"L10: 1.8"},
+  {Name:"Alex Wilkins",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:17.7,L10:17.1,Notes:"L10: 17.1"},
+  {Name:"Cooper Bowser",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:14.0,L10:12.1,Notes:"L10: 12.1"},
+  {Name:"Asa Thomas",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:12.4,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Charles Johnston",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:9.8,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Tom House",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:8.1,L10:3.9,Notes:"L10: 3.9"},
+  {Name:"Ben Vander Wal",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:7.3,L10:7.4,Notes:"L10: 7.4"},
+  {Name:"Eddrin Bronson",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:5.6,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Cole Bowser",Team:"Furman",Seed:"15",Region:"TBD",Pos:"",TournPPG:5.1,L10:5.8,Notes:"L10: 5.8"},
+  {Name:"Gavin Doty",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:17.9,L10:15.1,Notes:"L10: 15.1"},
+  {Name:"Justice Shoats",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:13.2,L10:13.0,Notes:"L10: 13.0"},
+  {Name:"Francis Folefac",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.1,L10:9.8,Notes:"L10: 9.8"},
+  {Name:"Tasman Goodrick",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:9.7,L10:9.7,Notes:"L10: 9.7"},
+  {Name:"Brendan Coyle",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:8.6,L10:10.1,Notes:"L10: 10.1"},
+  {Name:"Antonio Chandler",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:7.3,L10:6.1,Notes:"L10: 6.1"},
+  {Name:"Christian Jones",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:4.3,L10:3.8,Notes:"L10: 3.8"},
+  {Name:"Riley Mulvey",Team:"Siena",Seed:"16",Region:"TBD",Pos:"",TournPPG:3.8,L10:3.0,Notes:"L10: 3.0"},
+  {Name:"Dra Gibbs-Lawhorn",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:20.8,L10:16.1,Notes:"L10: 16.1"},
+  {Name:"Kimani Hamilton",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:13.0,L10:12.9,Notes:"L10: 12.9"},
+  {Name:"Tyrin Jones",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.7,L10:9.3,Notes:"L10: 9.3"},
+  {Name:"Howie Fleming Jr.",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:9.1,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Issac Williamson",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:8.7,L10:10.8,Notes:"L10: 10.8"},
+  {Name:"Jacob Bannarbie",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:5.4,L10:6.6,Notes:"L10: 6.6"},
+  {Name:"Naas Cunningham",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:5.2,L10:7.0,Notes:"L10: 7.0"},
+  {Name:"Al Green",Team:"UMBC",Seed:"16",Region:"TBD",Pos:"",TournPPG:4.6,L10:6.1,Notes:"L10: 6.1"},
+  {Name:"Jakobi Heady",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:18.2,L10:16.3,Notes:"L10: 16.3"},
+  {Name:"Doctor Bradley",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.9,L10:11.9,Notes:"L10: 11.9"},
+  {Name:"Daniel Rouzan",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.8,L10:11.5,Notes:"L10: 11.5"},
+  {Name:"Arterio Morris",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.5,L10:13.4,Notes:"L10: 13.4"},
+  {Name:"Quentin Heady",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:10.3,L10:10.2,Notes:"L10: 10.2"},
+  {Name:"Tyler Andrews",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:6.9,L10:9.9,Notes:"L10: 9.9"},
+  {Name:"Jordan Johnson",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:4.9,L10:6.5,Notes:"L10: 6.5"},
+  {Name:"Ariel Bland",Team:"Bethune-Cookman",Seed:"16",Region:"TBD",Pos:"",TournPPG:4.8,L10:3.8,Notes:"L10: 3.8"},
+  {Name:"Xavier Amos",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.3,L10:11.6,Notes:"L10: 11.6"},
+  {Name:"Miles Rubin",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:11.0,L10:12.4,Notes:"L10: 12.4"},
+  {Name:"Justin Moore",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:10.9,L10:12.6,Notes:"L10: 12.6"},
+  {Name:"Kayde Dotson",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:10.5,L10:8.2,Notes:"L10: 8.2"},
+  {Name:"Deywilk Tavarez",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:9.0,L10:10.6,Notes:"L10: 10.6"},
+  {Name:"Joshua Ola-Joseph",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:7.9,L10:6.0,Notes:"L10: 6.0"},
+  {Name:"Chuck Love",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:7.2,L10:8.9,Notes:"L10: 8.9"},
+  {Name:"Kymany Houinsou",Team:"Lehigh",Seed:"16",Region:"TBD",Pos:"",TournPPG:6.0,L10:4.5,Notes:"L10: 4.5"},
+];
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let state = freshState();
+function freshState(){
+  return {
+    pick:1, taken:new Set(), roster:[], log:[],
+    projG:{}, perPlayerG:{}, injured:new Set(), hideInjured:false, sortMode:"adj", tab:"board",
+    modalTeam:null
+  };
+}
+
+// ── Utils ──────────────────────────────────────────────────────────────────────
+function buildOrder(){const o=[];for(let r=0;r<ROUNDS;r++)for(let t=0;t<TEAMS;t++)o.push(r%2===0?t+1:TEAMS-t);return o;}
+const PICK_ORDER=buildOrder();
+function getRound(p){return Math.floor((p-1)/TEAMS)+1;}
+function getRoundType(r){return r<=10?"open":r<=12?"dd":"final";}
+function getG(p){
+  const key=p.Name+p.Team;
+  if(state.injured.has(p.Name+p.Team)) return 0;
+  if(state.perPlayerG[key]!==undefined) return state.perPlayerG[key];
+  if(state.projG[p.Team]!==undefined) return state.projG[p.Team];
+  if(SIM_PROJ_G[p.Team]!==undefined) return SIM_PROJ_G[p.Team];
+  return DEFAULT_G[p.Seed]||1;
+}
+function projPts(p){return Math.round(p.TournPPG*getG(p)*10)/10;}
+function isEligible(p){
+  const rt=getRoundType(getRound(state.pick));
+  if(rt==="dd") return parseInt(p.Seed)>=10&&!p.FF;
+  return true;
+}
+function personalFlag(p){
+  const s=parseInt(p.Seed);
+  if(s===16) return {type:"never",icon:"🚫",label:"Never draft"};
+  if(s===4) return {type:"fade",icon:"⚠️",label:"FADE · 4-seed"};
+  if(s===8||s===9) return {type:"fade89",icon:"🚫",label:"FADE · 8/9 → R2 vs #1"};
+  if(s===11||s===12) return {type:"target",icon:"🎯",label:"TARGET · DD"};
+  return null;
+}
+function getCollision(tA,tB){
+  const a=BRACKET[tA],b=BRACKET[tB];
+  if(!a||!b||tA===tB) return null;
+  if(a.region===b.region){
+    if(a.half===b.half) return {level:"R32",label:"⚡ R32 clash!",color:"#f85149"};
+    return {level:"E8",label:"🔶 Elite 8 clash",color:"#ff7b25"};
+  }
+  if(FF_SEMI[a.region]===FF_SEMI[b.region]) return {level:"FF",label:"🟡 Final Four clash",color:"#e3b341"};
+  return {level:"CHAMP",label:"✅ Champ only",color:"#2ea043"};
+}
+function rosterConflicts(){
+  const out=[];
+  for(let i=0;i<state.roster.length;i++)
+    for(let j=i+1;j<state.roster.length;j++){
+      const c=getCollision(state.roster[i].Team,state.roster[j].Team);
+      if(c&&c.level!=="CHAMP") out.push({a:state.roster[i],b:state.roster[j],...c});
+    }
+  return out;
+}
+function scorePlayer(p){
+  const flag=personalFlag(p);
+  const fadePen=flag?.type==="fade"?-20:flag?.type==="fade89"?-15:0;
+  const targetBon=flag?.type==="target"?10:0;
+  const myRegs=state.roster.map(r=>BRACKET[r.Team]?.region);
+  const regCount=myRegs.filter(r=>r===BRACKET[p.Team]?.region).length;
+  const spreadPen=-regCount*18;
+  let colPen=0,worstCol=null;
+  for(const r of state.roster){
+    const c=getCollision(r.Team,p.Team);
+    if(!c) continue;
+    if(c.level==="R32"){colPen-=25;if(!worstCol||worstCol.level!=="R32") worstCol={...c,against:r};}
+    else if(c.level==="E8"){colPen-=12;if(!worstCol) worstCol={...c,against:r};}
+    else if(c.level==="FF"){colPen-=4;if(!worstCol) worstCol={...c,against:r};}
+  }
+  const pts=projPts(p);
+  const seed16Pen=parseInt(p.Seed)===16?-999:0;
+  const injPen=state.injured.has(p.Name+p.Team)?-999:0;
+  const score=pts+fadePen+targetBon+spreadPen+colPen+seed16Pen+injPen;
+  return{score,fadePen,targetBon,spreadPen,colPen,worstCol,pts,seed16Pen,injPen};
+}
+function recommend(){
+  const round=getRound(state.pick);
+  const available=POOL.filter(p=>!state.taken.has(p.Name+p.Team));
+  const eligible=available.filter(p=>isEligible(p));
+  if(!eligible.length) return null;
+  const hasFF=state.roster.some(p=>p.FF);
+  if(!hasFF&&round>=7&&round<=10){
+    const ff=eligible.filter(p=>p.FF&&parseInt(p.Seed)!==16&&!state.injured.has(p.Name+p.Team));
+    if(ff.length) return{player:ff[0],reason:"⚠️ Fulfill First Four obligation now (rounds 1-10 only)"};
+  }
+  // Never recommend 16-seeds or injured players
+  const draftable=eligible.filter(p=>parseInt(p.Seed)!==16&&!state.injured.has(p.Name+p.Team));
+  if(!draftable.length) return null;
+  const scored=draftable.map(p=>({player:p,...scorePlayer(p)})).sort((a,b)=>b.score-a.score);
+  const best=scored[0];
+  const{player}=best;
+  const flag=personalFlag(player);
+  const stacks=state.roster.filter(r=>r.Team===player.Team).length;
+  let reason=`${best.pts}pts raw · adj: ${best.score}`;
+  if(flag) reason+=` · ${flag.icon} ${flag.label}`;
+  if(stacks>0) reason+=` · 🏀 +${stacks+1} ${player.Team}`;
+  if(best.spreadPen<0) reason+=` · spread${best.spreadPen}`;
+  if(best.colPen<0) reason+=` · ${best.worstCol?.label}`;
+  return{player,reason};
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────────
+function doDraft(name,team,asMe){
+  const p=POOL.find(x=>x.Name===name&&x.Team===team);
+  if(!p) return;
+  const round=getRound(state.pick);
+  state.taken.add(name+team);
+  state.log.push({pick:state.pick,round,team:asMe?MY_POS:PICK_ORDER[state.pick-1],player:p});
+  if(asMe) state.roster.push({...p,Pts:projPts(p)});
+  state.pick++;
+  if(asMe){
+    const curG=getG(p);
+    showModal(p.Team,p.Seed,curG);
+  } else {
+    render();
+  }
+}
+function doUndo(){
+  if(!state.log.length) return;
+  const last=state.log[state.log.length-1];
+  state.taken.delete(last.player.Name+last.player.Team);
+  state.log.pop();
+  if(last.team===MY_POS) state.roster.pop();
+  state.pick--;
+  render();
+}
+function doReset(){
+  state=freshState();
+  render();
+}
+function setTeamProjG(team,val){
+  state.projG[team]=val;
+  Object.keys(state.perPlayerG).forEach(k=>{
+    const p=POOL.find(x=>(x.Name+x.Team)===k);
+    if(p&&p.Team===team) delete state.perPlayerG[k];
+  });
+  renderBoard();
+}
+function resetProjG(){
+  state.projG={};state.perPlayerG={};renderBoard();
+}
+function toggleInjury(name){
+  if(state.injured.has(name)) state.injured.delete(name);
+  else state.injured.add(name);
+  renderBoard();
+}
+function setSortMode(mode){
+  state.sortMode=mode;
+  renderBoard();
+}
+function toggleSort(){
+  state.sortMode=state.sortMode==="adj"?"raw":state.sortMode==="raw"?"seed":state.sortMode==="seed"?"tppg":"adj";
+  renderBoard();
+}
+function setTab(t){
+  state.tab=t;
+  document.getElementById("view-board").style.display=t==="board"?"block":"none";
+  document.getElementById("view-roster").style.display=t==="roster"?"block":"none";
+  document.getElementById("view-log").style.display=t==="log"?"block":"none";
+  ["board","roster","log"].forEach(x=>{
+    const btn=document.getElementById("tab-"+x);
+    btn.style.background=x===t?"#388bfd":"#21262d";
+    btn.style.color=x===t?"#fff":"#8b949e";
+  });
+  if(t==="roster") renderRoster();
+  if(t==="log") renderLog();
+}
+
+// ── Modal ──────────────────────────────────────────────────────────────────────
+function showModal(team,seed,curG){
+  state.modalTeam=team;
+  document.getElementById("modal-body").innerHTML=`You drafted from <b style="color:#58a6ff">${team}</b> (#${seed})`;
+  document.getElementById("modal-hint").textContent=`Set projected games for ALL ${team} players. Spinners on the board also update all players on that team.`;
+  document.getElementById("modal-input").value=curG;
+  document.getElementById("modal-apply").onclick=()=>{
+    const val=parseFloat(document.getElementById("modal-input").value)||0;
+    setTeamProjG(team,val);
+    closeModal();
+  };
+  document.getElementById("modal-overlay").classList.add("show");
+}
+function closeModal(){
+  document.getElementById("modal-overlay").classList.remove("show");
+  state.modalTeam=null;
+  render();
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────────
+function render(){
+  renderStatus();
+  renderObligation();
+  renderAgent();
+  if(state.tab==="board") renderBoard();
+  else if(state.tab==="roster") renderRoster();
+  else renderLog();
+}
+
+function renderStatus(){
+  const round=getRound(state.pick);
+  const rt=getRoundType(round);
+  const team=PICK_ORDER[state.pick-1];
+  const isMe=team===MY_POS;
+  const totalPts=state.roster.reduce((s,p)=>s+p.Pts,0);
+  const conflicts=rosterConflicts();
+  const RBG={open:"#0d1f2a",dd:"#2a0d0d",final:"#0d2a0d"};
+  const rtLabel=rt==="open"?"OPEN — any player":rt==="dd"?"🔒 DD ONLY (10+ seed, no First Four)":"OPEN FINAL";
+  document.getElementById("status-row").style.background=RBG[rt];
+  document.getElementById("status-row").innerHTML=`
+    <span style="font-weight:bold">Round ${round} · Pick ${state.pick}/${ROUNDS*TEAMS}</span>
+    <span style="color:#8b949e;font-size:11px">${rtLabel}</span>
+    <span style="color:${isMe?"#ffa657":"#8b949e"};font-weight:${isMe?"bold":"normal"}">${isMe?"⭐ YOUR PICK":`Team ${team} on clock`}</span>
+    ${conflicts.length>0?`<span style="color:#ffa657;font-size:11px">⚠️ ${conflicts.length} clash${conflicts.length>1?"es":""}</span>`:""}
+    <span style="margin-left:auto;color:#79c0ff;font-weight:bold">${totalPts}pts · ${state.roster.length}/14</span>
+    <button onclick="doUndo()" style="padding:2px 7px;border-radius:3px;border:1px solid #555;background:#21262d;color:#ccc;font-size:11px">↩ Undo</button>
+    <button onclick="doReset()" style="padding:2px 7px;border-radius:3px;border:1px solid #f85149;background:#2d0f0f;color:#f85149;font-size:11px;margin-left:4px">🗑 Reset Board</button>
+  `;
+}
+
+function renderObligation(){
+  const myPicks=state.log.filter(d=>d.team===MY_POS);
+  const ddPicks=myPicks.filter(d=>d.round>=11&&d.round<=12);
+  const ddDone=ddPicks.length;
+  const ddNeeded=2-ddDone;
+  const round=getRound(state.pick);
+  const hasFF=state.roster.some(p=>p.FF);
+  const myDdPicksLeft=PICK_ORDER.slice(state.pick-1).map((t,i)=>({t,r:getRound(state.pick+i)})).filter(x=>x.t===MY_POS&&x.r>=11&&x.r<=12).length;
+  const myPicksInOpenWindow=PICK_ORDER.slice(state.pick-1).map((t,i)=>({t,r:getRound(state.pick+i)})).filter(x=>x.t===MY_POS&&x.r<=10).length;
+
+  const ffStatus=hasFF
+    ?{label:"✓ First Four",detail:state.roster.find(p=>p.FF)?.Name.split(" ").slice(-1)[0]+"("+state.roster.find(p=>p.FF)?.Team+")",bg:"#1a2e1a",border:"#2ea043",color:"#2ea043"}
+    :round<=10
+      ?{label:"⚠️ First Four needed",detail:`${myPicksInOpenWindow} pick${myPicksInOpenWindow!==1?"s":""} left in R1-10`,bg:"#2d1a00",border:"#ffa657",color:"#ffa657"}
+      :{label:"🚨 FF MISSED",detail:"Window closed R1-10",bg:"#2d0d0d",border:"#f85149",color:"#f85149"};
+
+  const ddStatus=ddDone>=2
+    ?{label:"✓ DD Slots filled",detail:ddPicks.map(d=>d.player.Name.split(" ").slice(-1)[0]).join(" + "),bg:"#1a2e1a",border:"#2ea043",color:"#2ea043"}
+    :round<=12
+      ?{label:`DD: ${ddDone}/2 filled`,detail:`${ddNeeded} more needed · ${myDdPicksLeft} picks left R11-12`,bg:ddDone===0?"#2d0d0d":"#2d1a00",border:ddDone===0?"#f85149":"#ffa657",color:ddDone===0?"#f85149":"#ffa657"}
+      :{label:`🚨 DD: only ${ddDone}/2`,detail:"Window closed",bg:"#2d0d0d",border:"#f85149",color:"#f85149"};
+
+  const myRegions=state.roster.reduce((a,p)=>{const r=BRACKET[p.Team]?.region||p.Region;a[r]=(a[r]||0)+1;return a},{});
+  const conflicts=rosterConflicts();
+
+  let html=`
+    <div class="pill" style="background:${ffStatus.bg};border:1px solid ${ffStatus.border}">
+      <div class="pill-label" style="color:${ffStatus.color}">${ffStatus.label}</div>
+      <div class="pill-detail">${ffStatus.detail}</div>
+    </div>
+    <div class="pill" style="background:${ddStatus.bg};border:1px solid ${ddStatus.border};min-width:220px">
+      <div class="pill-label" style="color:${ddStatus.color}">${ddStatus.label}</div>
+      <div class="pill-detail">${ddStatus.detail}</div>
+    </div>`;
+  if(ddPicks.length>0){
+    html+=`<div class="pill" style="background:#161b22;border:1px solid #30363d;min-width:auto">
+      <div style="color:#8b949e;font-size:10px;margin-bottom:2px">DD picks:</div>
+      ${ddPicks.map(d=>`<div style="font-size:10px;color:#d2a8ff">R${d.round}: ${d.player.Name} <span style="color:#555">#${d.player.Seed}·${d.player.Pts}pts</span></div>`).join("")}
+    </div>`;
+  }
+  html+=`<div class="pill" style="background:#161b22;border:1px solid #30363d;min-width:auto">
+    <div style="color:#8b949e;font-size:10px;margin-bottom:2px">Region spread:</div>
+    <div style="display:flex;gap:8px">
+      ${["East","West","South","Midwest"].map(r=>`<span style="font-size:10px;color:${RT[r]}">${r[0]}<span style="color:#555;font-size:9px">(FF-${FF_SEMI[r]})</span>:<strong>${myRegions[r]||0}</strong></span>`).join("")}
+    </div>
+  </div>`;
+  if(conflicts.length>0){
+    html+=`<div class="pill" style="background:#2d1a00;border:1px solid #ffa657;min-width:auto">
+      <div style="color:#ffa657;font-size:10px;margin-bottom:2px">Clashes:</div>
+      ${conflicts.slice(0,3).map(c=>`<div style="font-size:10px;color:${c.color};white-space:nowrap">${c.a.Name.split(" ").slice(-1)} + ${c.b.Name.split(" ").slice(-1)}: ${c.label}</div>`).join("")}
+    </div>`;
+  }
+  document.getElementById("obligation-row").innerHTML=html;
+}
+
+function renderAgent(){
+  const round=getRound(state.pick);
+  const team=PICK_ORDER[state.pick-1];
+  const isMe=team===MY_POS;
+  const agentRow=document.getElementById("agent-row");
+  if(!isMe){agentRow.style.display="none";return;}
+  const rec=recommend();
+  if(!rec){agentRow.style.display="none";return;}
+  const bkt=BRACKET[rec.player.Team];
+  const region=bkt?.region||rec.player.Region;
+  agentRow.style.display="flex";
+  agentRow.innerHTML=`
+    <span style="color:#2ea043;font-weight:bold;font-size:11px">🤖 AGENT:</span>
+    <span style="font-weight:bold">${rec.player.Name}</span>
+    <span style="color:${RT[region]||"#ccc"}">${rec.player.Team} · #${rec.player.Seed} · ${region}</span>
+    <span style="color:#8b949e;font-size:11px">${rec.reason}</span>
+    <button class="btn-draft" style="margin-left:auto;padding:3px 12px;font-size:11px" onclick="doDraft('${rec.player.Name.replace(/'/g,"\\'")}','${rec.player.Team}',true)">DRAFT →</button>
+  `;
+}
+
+function renderBoard(){
+  const search=document.getElementById("search").value.toLowerCase();
+  const seedF=document.getElementById("seed-filter").value;
+  const regF=document.getElementById("reg-filter").value;
+
+  // Populate seed filter if needed
+  const sf=document.getElementById("seed-filter");
+  if(sf.options.length<=1){
+    const seeds=[...new Set(POOL.map(p=>p.Seed))].sort((a,b)=>+a-+b);
+    seeds.forEach(s=>{const o=document.createElement("option");o.value=s;o.textContent=`#${s} seed`;sf.appendChild(o);});
+  }
+
+  const sortBtn=document.getElementById("sort-btn");
+  const sortLabels={adj:"⚡ Adj Score",raw:"📊 Raw Pts",seed:"🔢 By Seed",tppg:"🏹 By tPPG"};
+  const sortColors={adj:"#2ea043",raw:"#8b949e",seed:"#79c0ff",tppg:"#d2a8ff"};
+  const sortBgs={adj:"#1a2e1a",raw:"#21262d",seed:"#0d1a2d",tppg:"#1a0d2a"};
+  sortBtn.textContent=sortLabels[state.sortMode];
+  sortBtn.style.borderColor=sortColors[state.sortMode];
+  sortBtn.style.background=sortBgs[state.sortMode];
+  sortBtn.style.color=sortColors[state.sortMode];
+
+  const available=POOL.filter(p=>!state.taken.has(p.Name+p.Team));
+  const eligibleCount=available.filter(p=>isEligible(p)).length;
+
+  let display=available.map(p=>({p,eligible:isEligible(p),...scorePlayer(p)}));
+  // Update injury toggle button label
+  const injBtn=document.getElementById("inj-toggle-btn");
+  if(injBtn) injBtn.textContent=state.hideInjured?"🚑 Show Injured":"🚑 Hide Injured";
+
+  // Filter injured if hidden
+  if(state.hideInjured) display=display.filter(({p})=>!state.injured.has(p.Name+p.Team));
+  display=display.filter(({p})=>{
+    if(seedF!=="all"&&p.Seed!==seedF) return false;
+    if(regF!=="all"){const r=BRACKET[p.Team]?.region||p.Region;if(r!==regF) return false;}
+    if(search&&!p.Name.toLowerCase().includes(search)&&!p.Team.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  display.sort((a,b)=>{
+    const a16=parseInt(a.p.Seed)===16, b16=parseInt(b.p.Seed)===16;
+    const aInj=state.injured.has(a.p.Name+a.p.Team), bInj=state.injured.has(b.p.Name+b.p.Team);
+    if(aInj!==bInj) return aInj?1:-1;
+    if(a16!==b16) return a16?1:-1;
+    if(state.sortMode==="seed"){
+      const seedDiff=parseInt(a.p.Seed)-parseInt(b.p.Seed);
+      if(seedDiff!==0) return seedDiff;
+      return projPts(b.p)-projPts(a.p);
+    }
+    if(state.sortMode==="tppg") return b.p.TournPPG-a.p.TournPPG;
+    if(a.eligible!==b.eligible) return a.eligible?-1:1;
+    return state.sortMode==="adj"?b.score-a.score:projPts(b.p)-projPts(a.p);
+  });
+
+  document.getElementById("pool-count").textContent=`${eligibleCount} eligible · ${display.filter(d=>!d.eligible).length} preview-only · ${available.length} left`;
+
+  const rec=recommend();
+  const tbody=document.getElementById("board-body");
+  tbody.innerHTML=display.map(({p,score,fadePen,targetBon,spreadPen,colPen,worstCol,eligible,seed16Pen,injPen},i)=>{
+    const isMyTurn=PICK_ORDER[state.pick-1]===MY_POS;
+    const flag=personalFlag(p);
+    const isRec=rec?.player===p;
+    const bkt=BRACKET[p.Team];
+    const region=bkt?.region||p.Region;
+    const stacks=state.roster.filter(r=>r.Team===p.Team).length;
+    const penParts=[];
+    if(fadePen) penParts.push(`fade${fadePen}`);
+    if(targetBon) penParts.push(`target+${targetBon}`);
+    if(spreadPen) penParts.push(`spread${spreadPen}`);
+    if(colPen) penParts.push(`col${colPen}`);
+    if(seed16Pen) penParts.push("🚫never");
+    if(injPen) penParts.push("🚑out");
+    const rowBg=isRec?"#1a2e1a":i%2===0?"#0d1117":"#161b22";
+    const g=getG(p);
+    const pkey=(p.Name+p.Team).replace(/'/g,"\\'");
+    const nameEsc=p.Name.replace(/'/g,"\\'");
+    const teamEsc=p.Team.replace(/'/g,"\\'");
+    const seedN=parseInt(p.Seed);
+    const seedBg=seedN<=2?"#1a472a":seedN<=4?"#1e3a5c":seedN<=9?"#3d2a00":"#333";
+    const rawPts=projPts(p);
+    const diffHtml=score!==rawPts?`<span style="font-size:9px;color:${score<rawPts?"#f85149":"#2ea043"};margin-left:2px">(${score>rawPts?"+":""}${Math.round((score-rawPts)*10)/10})</span>`:"";
+    const scoreColor=score>=55?"#2ea043":score>=35?"#ffa657":score>=20?"#e6edf3":"#8b949e";
+    const isInj=state.injured.has(p.Name+p.Team);
+    return `<tr style="background:${isInj?'#2a0a0a':rowBg};border-bottom:1px solid #1c2128;opacity:${parseInt(p.Seed)===16?0.2:isInj?0.5:eligible?1:0.35}">
+      <td class="frozen col1" style="background:${rowBg};color:#555">${i+1}</td>
+      <td class="frozen col2" style="background:${rowBg};font-weight:${isRec?"bold":"normal"};color:${isRec?"#2ea043":"#e6edf3"};white-space:nowrap">
+        ${isRec?"⭐ ":""}${p.Name}${p.FF?`<span style="color:#ffa657;margin-left:3px;font-size:9px">FF</span>`:""}
+      </td>
+      <td class="frozen col3" style="background:${rowBg};color:#79c0ff;white-space:nowrap">${p.Team}${stacks>0?`<span style="color:#ffa657;margin-left:2px;font-size:9px">+${stacks}</span>`:""}</td>
+      <td><span class="seed-badge" style="background:${seedBg}">#${p.Seed}</span></td>
+      <td><span class="region-badge" style="background:${RC[region]||"#222"};color:${RT[region]||"#ccc"}">${region}</span></td>
+      <td style="color:#444;font-size:10px;white-space:nowrap">${bkt?`${bkt.half}→FF-${FF_SEMI[bkt.region]}`:"?"}</td>
+      <td style="color:#8b949e">${p.Pos}</td>
+      <td style="color:#ccc">${p.TournPPG}</td>
+      <td style="color:${p.L10!=null&&p.L10>p.TournPPG?'#f0c040':p.L10!=null&&p.L10<p.TournPPG-2?'#f85149':'#8b949e'};font-weight:${p.L10!=null&&Math.abs(p.L10-p.TournPPG)>=2?'bold':'normal'};font-size:11px">${p.L10!=null?(p.L10>p.TournPPG+2?'🔥':p.L10<p.TournPPG-2?'📉':'')+p.L10.toFixed(1):'—'}</td>
+      <td><input type="number" min="0" max="6" step="0.5" value="${g}"
+        data-team="${p.Team}"
+        onchange="setTeamProjG(this.dataset.team, parseFloat(this.value)||0)"
+        style="width:58px;padding:1px 3px;border-radius:3px;border:1px solid #30363d;background:#21262d;color:#ffa657;font-size:10px;text-align:center"
+        title="Sets projected games for ALL ${p.Team} players."></td>
+      <td style="color:#8b949e">${rawPts}</td>
+      <td style="font-weight:bold;color:${scoreColor};border-left:1px solid #2ea04344">${score}${diffHtml}</td>
+      <td style="font-size:10px;color:#555;white-space:nowrap">${penParts.join(" · ")||"—"}</td>
+      <td style="font-size:10px;white-space:nowrap">${flag?`<span style="color:${(flag.type==="fade"||flag.type==="fade89")?"#f85149":"#2ea043"}">${flag.icon} ${flag.label}</span>`:""}</td>
+      <td style="font-size:10px;white-space:nowrap">${worstCol?`<span style="color:${worstCol.color}">${worstCol.against.Name.split(" ").slice(-1)}: ${worstCol.label}</span>`:""}</td>
+      <td style="color:#8b949e;font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.Notes}</td>
+      <td style="white-space:nowrap">
+        <button onclick="toggleInjury('${nameEsc+teamEsc}');event.stopPropagation()"
+          style="padding:1px 4px;border-radius:3px;border:1px solid ${isInj?'#f85149':'#333'};background:${isInj?'#3d1010':'#21262d'};color:${isInj?'#f85149':'#555'};font-size:11px;margin-right:3px;cursor:pointer"
+          title="${isInj?'Clear injury':'Mark injured'}">🚑</button>${isInj
+        ? `<span style="color:#f85149;font-size:10px;font-weight:bold">OUT</span>`
+        : eligible
+          ? `${isMyTurn
+              ? `<button class="btn-draft" onclick="doDraft('${nameEsc}','${teamEsc}',true)">DRAFT</button>`
+              : `<button disabled style="padding:2px 6px;border-radius:3px;border:1px solid #333;background:#1a1a1a;color:#444;font-size:10px;font-weight:bold;margin-right:3px;cursor:not-allowed" title="Not your pick">DRAFT</button>`
+            }<button class="btn-taken" onclick="doDraft('${nameEsc}','${teamEsc}',false)">TAKEN</button>`
+          : `<span style="color:#555;font-size:10px">🔒 DD only</span>`
+        }
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function renderRoster(){
+  const totalPts=state.roster.reduce((s,p)=>s+p.Pts,0);
+  const conflicts=rosterConflicts();
+  const myRegions=state.roster.reduce((a,p)=>{const r=BRACKET[p.Team]?.region||p.Region;a[r]=(a[r]||0)+1;return a},{});
+  const hasFF=state.roster.some(p=>p.FF);
+
+  let html=`<div style="display:flex;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <h3 style="margin:0;color:#ffa657">🏀 Tobacco Road — 2025 Sim Roster</h3>
+    <div style="color:#2ea043;font-weight:bold;font-size:16px">${totalPts} pts projected</div>
+  </div>`;
+
+  // Region cards
+  html+=`<div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">`;
+  ["East","West","South","Midwest"].forEach(r=>{
+    const rp=state.roster.filter(p=>(BRACKET[p.Team]?.region||p.Region)===r);
+    html+=`<div style="background:${RC[r]};border:1px solid ${RT[r]}44;border-radius:6px;padding:8px 10px;min-width:150px;flex:1">
+      <div style="color:${RT[r]};font-weight:bold;font-size:11px">${r} <span style="font-weight:normal;font-size:10px;color:#8b949e">(FF-${FF_SEMI[r]})</span></div>
+      ${rp.length===0?`<div style="color:#333;font-size:10px;margin-top:4px">no picks — spread opportunity</div>`
+        :rp.map(p=>`<div style="font-size:10px;color:#ccc;margin-top:3px">${p.Name} <span style="color:#555">#${p.Seed}·${p.Pts}pts</span></div>`).join("")}
+    </div>`;
+  });
+  html+="</div>";
+
+  if(conflicts.length>0){
+    html+=`<div style="background:#2d1a00;border:1px solid #ffa657;border-radius:6px;padding:10px;margin-bottom:12px">
+      <div style="color:#ffa657;font-weight:bold;margin-bottom:6px;font-size:12px">⚠️ Region Conflicts</div>
+      ${conflicts.map(c=>`<div style="font-size:11px;color:${c.color};margin-bottom:3px"><strong>${c.a.Name}</strong> + <strong>${c.b.Name}</strong> — ${c.label}</div>`).join("")}
+    </div>`;
+  }
+
+  if(state.roster.length===0){html+=`<div style="color:#8b949e;padding:16px">No picks yet — go to Board tab.</div>`;}
+  state.roster.forEach((p,i)=>{
+    const flag=personalFlag(p);
+    const bkt=BRACKET[p.Team];
+    const region=bkt?.region||p.Region;
+    const rnd=state.log.filter(d=>d.team===MY_POS)[i]?.round;
+    html+=`<div class="roster-card">
+      <span style="color:#555;min-width:18px;font-size:11px">R${rnd||"?"}</span>
+      <span class="region-badge" style="background:${RC[region]||"#222"};color:${RT[region]||"#ccc"}">${region}</span>
+      <span class="seed-badge" style="background:${parseInt(p.Seed)<=2?"#1a472a":"#333"}">#${p.Seed}</span>
+      ${p.FF?`<span style="color:#ffa657;font-size:9px;background:#3d2a00;padding:0 3px;border-radius:3px">FF</span>`:""}
+      <span style="font-weight:bold;min-width:150px">${p.Name}</span>
+      <span style="color:#79c0ff;font-size:11px;min-width:90px">${p.Team}</span>
+      <span style="color:#8b949e;font-size:11px">${p.TournPPG}×${getG(p)}g</span>
+      <span style="font-weight:bold;color:${p.Pts>=80?"#2ea043":p.Pts>=50?"#ffa657":"#e6edf3"};margin-left:auto">${p.Pts}pts</span>
+      ${flag?`<span style="font-size:10px;color:${(flag.type==="fade"||flag.type==="fade89")?"#f85149":"#2ea043"}">${flag.icon}</span>`:""}
+      ${bkt?`<span style="font-size:10px;color:#444">FF-${FF_SEMI[bkt.region]}</span>`:""}
+    </div>`;
+  });
+
+  if(state.roster.length>0){
+    const byTeam=state.roster.reduce((a,p)=>{a[p.Team]=(a[p.Team]||[]);a[p.Team].push(p);return a},{});
+    html+=`<div style="background:#1a2e1a;border:1px solid #2ea043;border-radius:6px;padding:10px;margin-top:10px">
+      <div style="font-weight:bold;color:#2ea043;margin-bottom:6px;font-size:12px">Stack & Region Summary</div>
+      ${Object.entries(byTeam).sort((a,b)=>b[1].length-a[1].length).map(([team,ps])=>{
+        const reg=BRACKET[team]?.region||ps[0].Region;
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+          <span style="color:#ccc">${team} <span style="color:${RT[reg]};font-size:10px">(${reg}·FF-${FF_SEMI[reg]})</span> ×${ps.length}</span>
+          <span style="color:#ffa657">${ps.reduce((s,p)=>s+p.Pts,0)}pts</span>
+        </div>`;
+      }).join("")}
+      <div style="border-top:1px solid #30363d;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:bold;font-size:12px">
+        <span>TOTAL PROJECTED</span><span style="color:#2ea043">${totalPts}pts</span>
+      </div>
+      <div style="font-size:11px;margin-top:6px;color:${hasFF?"#2ea043":"#ffa657"}">
+        ${hasFF?"✓ First Four obligation satisfied":"⚠️ First Four pick still needed (rounds 1-10)"}
+      </div>
+    </div>`;
+  }
+  document.getElementById("view-roster").innerHTML=html;
+}
+
+function renderLog(){
+  let html=`<h3 style="margin:0 0 8px;color:#ffa657">Draft Log</h3>`;
+  if(!state.log.length){html+=`<div style="color:#8b949e">No picks yet.</div>`;}
+  [...state.log].reverse().forEach(e=>{
+    const region=BRACKET[e.player.Team]?.region||e.player.Region;
+    const isMe=e.team===MY_POS;
+    html+=`<div class="log-row" style="background:${isMe?"#1a2e1a":"#161b22"};border:1px solid ${isMe?"#2ea043":"#30363d"}">
+      <span style="color:#555;min-width:40px">Pk ${e.pick}</span>
+      <span style="color:#555;min-width:22px">R${e.round}</span>
+      <span style="color:${isMe?"#2ea043":"#555"};min-width:45px">${isMe?"⭐ ME":`Tm ${e.team}`}</span>
+      <span class="region-badge" style="background:${RC[region]||"#222"};color:${RT[region]||"#ccc"}">${region}</span>
+      <span class="seed-badge" style="background:#333">#${e.player.Seed}</span>
+      <span style="font-weight:bold;color:${isMe?"#e6edf3":"#555"}">${e.player.Name}</span>
+      <span style="color:#79c0ff">${e.player.Team}</span>
+      ${e.player.FF?`<span style="color:#ffa657;font-size:9px">FF</span>`:""}
+      ${isMe?`<span style="color:#ffa657;margin-left:auto">${e.player.Pts}pts</span>`:""}
+    </div>`;
+  });
+  document.getElementById("view-log").innerHTML=html;
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+setTab("board");
+render();
+
+// ── DEMO FUNCTIONS ─────────────────────────────────────────────────────────────
+function showUnlockModal(){
+  document.getElementById("unlock-modal").classList.add("show");
+}
+function hideUnlockModal(){
+  document.getElementById("unlock-modal").classList.remove("show");
+}
+// Show unlock modal anytime user tries to interact with draft actions
+document.addEventListener("DOMContentLoaded",()=>{
+  // Auto-show after 4 seconds so they can look around first
+  setTimeout(()=>{
+    if(!document.getElementById("unlock-modal").classList.contains("show")){
+      showUnlockModal();
+    }
+  },4000);
+});
+</script>
+
+</body>
+</html>
